@@ -9,6 +9,10 @@ import CreatePost from './components/post/CreatePost';
 import EditProfile from './components/profile/EditProfile';
 import Feed from './components/feed/Feed';
 import { loadUserFromStorage } from './redux/authSlice';
+import PublicProfile from "./components/profile/PublicProfile";
+import FriendsList from "./components/friends/FriendsList";
+import FriendRequests from "./components/friends/FriendRequests";
+
 
 function App() {
   const dispatch = useDispatch();
@@ -20,6 +24,9 @@ function App() {
     dispatch(loadUserFromStorage());
   }, [dispatch]);
 
+
+
+
   return (
     <Router>
       <div className="app">
@@ -29,12 +36,15 @@ function App() {
           <Route path="/" element={<Navigate to={isAuthenticated ? "/feed" : "/login"} />} />
           <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/feed" />} />
           <Route path="/signup" element={!isAuthenticated ? <Signup /> : <Navigate to="/feed" />} />
+          <Route path="/profile" element={isAuthenticated ? <Profile /> : <Navigate to="/login" />} />
+          <Route path="/friends" element={isAuthenticated ? <FriendsList /> : <Navigate to="/login" />} />
+          <Route path="/friends/requests" element={isAuthenticated ? <FriendRequests /> : <Navigate to="/login" />} />
 
           <Route path="/feed" element={isAuthenticated ? <Feed /> : <Navigate to="/login" />} />
           <Route path="/profile" element={isAuthenticated ? <Profile /> : <Navigate to="/login" />} />
           <Route path="/create-post" element={isAuthenticated ? <CreatePost /> : <Navigate to="/login" />} />
           <Route path="/edit-profile" element={isAuthenticated ? <EditProfile /> : <Navigate to="/login" />} />
-
+        <Route path="/profile/:id" element={isAuthenticated ? <PublicProfile /> : <Navigate to="/login" />} />
           <Route path="*" element={<Navigate to={isAuthenticated ? "/feed" : "/login"} />} />
         </Routes>
       </div>

@@ -13,19 +13,7 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// Helper to upload buffer to Cloudinary
-// const uploadToCloudinary = (fileBuffer) => {
-//   return new Promise((resolve, reject) => {
-//     const stream = cloudinary.uploader.upload_stream(
-//       { folder: "profilePics" },
-//       (error, result) => {
-//         if (result) resolve(result);
-//         else reject(error);
-//       }
-//     );
-//     stream.end(fileBuffer);
-//   });
-// };
+
 const uploadToCloudinary = (fileBuffer) => {
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
@@ -95,6 +83,9 @@ export const loginUser = async (req, res) => {
       bio: user.bio || "",          // ✅ return bio
       location: user.location || "", // ✅ return location
       token: generateToken(user._id),
+        createdAt: user.createdAt, 
+      friends: user.friends || [],
+       
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

@@ -12,4 +12,20 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+export const searchUsers = async (query) => {
+  if (!query) return [];
+  const res = await api.get(`/api/users/search?q=${query}`);
+  return res.data;
+};
+
+export const getUserById = async (id) => {
+  try {
+    const res = await api.get(`/api/users/${id}`);
+    return res.data;
+  } catch (error) {
+    console.error("Error fetching user by ID:", error.response?.data || error);
+    throw error;
+  }
+};
+
 export default api;
