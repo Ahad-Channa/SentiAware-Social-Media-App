@@ -1,6 +1,7 @@
 import User from "../models/User.js";
 import bcrypt from "bcryptjs";
 import generateToken from "../utils/generateToken.js";
+import sendEmail from "../utils/sendEmail.js";
 import { v2 as cloudinary } from "cloudinary";
 import dotenv from "dotenv";
 
@@ -26,6 +27,94 @@ const uploadToCloudinary = (fileBuffer) => {
     stream.end(fileBuffer);
   });
 };
+
+const pendingRegistrations = new Map();
+
+// STEP 1: INIT REGISTER (Send OTP only)
+export const registerInit = async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+
+    const userExists = await User.findOne({ email });
+    if (userExists)
+      return res.status(400).json({ message: "User already exists" });
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    pendingRegistrations.set(email, {
+      name,
+      email,
+      password,
+      otp,
+      expires: Date.now() + 10 * 60 * 1000,
+    });
+
+    
+
+    await sendEmail(
+      email,
+      "SentiAware Registration OTP",
+      `Your OTP is: ${otp}`
+    );
+
+    res.json({ message: "OTP sent to your email" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
+// STEP 2: VERIFY OTP & CREATE USER
+export const registerVerify = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    const record = pendingRegistrations.get(email);
+
+    if (!record)
+      return res.status(400).json({ message: "No pending registration found" });
+
+    if (record.expires < Date.now())
+      return res.status(400).json({ message: "OTP expired" });
+
+    if (record.otp !== otp)
+      return res.status(400).json({ message: "Invalid OTP" });
+
+    // Use stored data, NOT req.body
+    const { name, password } = record;
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    let profilePic = "";
+    if (req.file) {
+      const uploadResult = await uploadToCloudinary(req.file.buffer);
+      profilePic = uploadResult.secure_url;
+    }
+
+    const user = await User.create({
+      name,
+      email,
+      password: hashedPassword,
+      profilePic,
+    });
+
+    pendingRegistrations.delete(email);
+
+    res.status(201).json({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      profilePic: user.profilePic,
+      token: generateToken(user._id),
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+
+  
+};
+
+
 
 // @desc Register user
 export const registerUser = async (req, res) => {
