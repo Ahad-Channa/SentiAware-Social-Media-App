@@ -28,4 +28,15 @@ export const getUserById = async (id) => {
   }
 };
 
+
+export const getNotifications = async () => {
+  const res = await api.get("/api/notifications");
+  return res.data;
+};
+
+export const markNotificationRead = async (id) => {
+  const res = await api.put(`/api/notifications/${id}/read`);
+  return res.data;
+};
+
 export default api;

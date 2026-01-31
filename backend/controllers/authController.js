@@ -1,4 +1,5 @@
 import User from "../models/User.js";
+import Notification from "../models/Notification.js";
 import bcrypt from "bcryptjs";
 import generateToken from "../utils/generateToken.js";
 import sendEmail from "../utils/sendEmail.js";
@@ -49,7 +50,7 @@ export const registerInit = async (req, res) => {
       expires: Date.now() + 10 * 60 * 1000,
     });
 
-    
+
 
     await sendEmail(
       email,
@@ -98,6 +99,13 @@ export const registerVerify = async (req, res) => {
       profilePic,
     });
 
+    // Create Welcome Notification
+    await Notification.create({
+      recipient: user._id,
+      message: "Welcome to SentiAware! Complete your profile to get started.",
+      type: "system",
+    });
+
     pendingRegistrations.delete(email);
 
     res.status(201).json({
@@ -111,7 +119,7 @@ export const registerVerify = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 
-  
+
 };
 
 
@@ -138,6 +146,13 @@ export const registerUser = async (req, res) => {
       email,
       password: hashedPassword,
       profilePic,
+    });
+
+    // Create Welcome Notification
+    await Notification.create({
+      recipient: user._id,
+      message: "Welcome to SentiAware! Complete your profile to get started.",
+      type: "system",
     });
 
     res.status(201).json({
@@ -172,9 +187,9 @@ export const loginUser = async (req, res) => {
       bio: user.bio || "",          // ✅ return bio
       location: user.location || "", // ✅ return location
       token: generateToken(user._id),
-        createdAt: user.createdAt, 
+      createdAt: user.createdAt,
       friends: user.friends || [],
-       
+
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
