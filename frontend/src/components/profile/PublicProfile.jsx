@@ -60,8 +60,8 @@
 //                 </div>
 //               </div>
 //             </div>
-            
-                
+
+
 
 //             {/* Friend Button */}
 //             <FriendButton targetUserId={id} />
@@ -145,12 +145,6 @@ const PublicProfile = () => {
                 {/* ⭐ Friend Stats */}
                 <div className="mt-3 flex space-x-6 text-gray-700 font-medium">
                   <span>👥 Friends: {user.friends?.length || 0}</span>
-                  <span className="text-blue-600">
-                    ➕ Sent: {user.friendRequestsSent?.length || 0}
-                  </span>
-                  <span className="text-orange-600">
-                    📥 Received: {user.friendRequestsReceived?.length || 0}
-                  </span>
                 </div>
               </div>
             </div>

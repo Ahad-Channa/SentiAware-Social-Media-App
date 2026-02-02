@@ -41,10 +41,10 @@ function App() {
           <Route path="/friends/requests" element={isAuthenticated ? <FriendRequests /> : <Navigate to="/login" />} />
 
           <Route path="/feed" element={isAuthenticated ? <Feed /> : <Navigate to="/login" />} />
-          <Route path="/profile" element={isAuthenticated ? <Profile /> : <Navigate to="/login" />} />
+          {/* <Route path="/profile" element={isAuthenticated ? <Profile /> : <Navigate to="/login" />} /> Duplicate removed */}
           <Route path="/create-post" element={isAuthenticated ? <CreatePost /> : <Navigate to="/login" />} />
           <Route path="/edit-profile" element={isAuthenticated ? <EditProfile /> : <Navigate to="/login" />} />
-        <Route path="/profile/:id" element={isAuthenticated ? <PublicProfile /> : <Navigate to="/login" />} />
+          <Route path="/profile/:id" element={isAuthenticated ? <PublicProfile /> : <Navigate to="/login" />} />
           <Route path="*" element={<Navigate to={isAuthenticated ? "/feed" : "/login"} />} />
         </Routes>
       </div>

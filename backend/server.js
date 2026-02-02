@@ -11,11 +11,17 @@ dotenv.config();
 connectDB();
 
 const app = express();
-app.use(cors());
+
+// Configure CORS
+app.use(cors({
+  origin: "http://localhost:5173",
+  credentials: true
+}));
+
 app.use(express.json());
 
 app.get("/", (req, res) => {
-  res.send("SentiAware API is running...");
+  res.send("API is running...");
 });
 
 import authRoutes from "./routes/authRoutes.js";
