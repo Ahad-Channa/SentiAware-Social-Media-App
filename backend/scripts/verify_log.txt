@@ -1,0 +1,29 @@
+✅ MongoDB Connected
+👤 Author: ahad
+👤 Commenter: Krishna
+
+📝 Post created: 698bfdc65f5f2b11217e8189
+
+--- Testing Add Comment ---
+Comment added: ✅ Passed
+
+--- Testing Edit Comment (Owner) ---
+Edit Success: ✅ Passed
+Edit Flag: ✅ Passed
+
+--- Testing Edit Comment (Non-Owner) ---
+Edit Blocked: ✅ Passed
+
+--- Testing Hide Comment (Post Owner) ---
+Hide Success: ✅ Passed
+
+--- Testing Unhide Comment (Post Owner) ---
+Unhide Success: ✅ Passed
+
+--- Testing Hide Comment (Non-Post Owner) ---
+Hide Blocked: ✅ Passed
+
+--- Testing Delete Comment (Comment Owner) ---
+Delete Success: ✅ Passed
+
+🧹 Cleanup Done

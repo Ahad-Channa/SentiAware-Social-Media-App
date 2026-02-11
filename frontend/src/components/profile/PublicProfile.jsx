@@ -84,6 +84,7 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { getUserById } from "../../api/api";
 import FriendButton from "../friends/FriendButton";
+import PostList from "../post/PostList";
 
 const PublicProfile = () => {
   const { id } = useParams();
@@ -154,10 +155,10 @@ const PublicProfile = () => {
           </div>
         </div>
 
-        {/* Posts Placeholder */}
-        <div className="mt-6 bg-white p-6 rounded-xl shadow">
-          <h2 className="text-xl font-bold mb-3">Posts</h2>
-          <p className="text-gray-500">User posts will appear here…</p>
+        {/* User Posts */}
+        <div className="mt-8">
+          <h2 className="text-xl font-bold mb-4 text-gray-800">Posts</h2>
+          <PostList userId={id} />
         </div>
 
       </div>

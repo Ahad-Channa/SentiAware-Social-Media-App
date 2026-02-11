@@ -14,7 +14,10 @@ const Header = () => {
   const { unreadCount } = useSelector((state) => state.notifications);
 
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+
   const notificationRef = useRef(null);
+  const userMenuRef = useRef(null);
 
   useEffect(() => {
     if (user) {
@@ -22,11 +25,14 @@ const Header = () => {
     }
   }, [dispatch, user]);
 
-  // Close dropdown when clicking outside
+  // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (notificationRef.current && !notificationRef.current.contains(event.target)) {
         setShowNotifications(false);
+      }
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+        setShowUserMenu(false);
       }
     };
 
@@ -42,29 +48,59 @@ const Header = () => {
   };
 
   return (
-    <header className="bg-white shadow-sm relative z-50">
+    <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100 shadow-sm transition-all duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
 
           {/* Left: Logo */}
-          <div>
-            <Link to="/" className="text-2xl font-bold text-purple-600">
+          <div className="flex-shrink-0 flex items-center">
+            <Link to="/" className="text-2xl font-extrabold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent hover:opacity-80 transition-opacity">
               SentiAware
             </Link>
           </div>
 
           {/* Middle: Search */}
-          <div className="flex-1 flex justify-center px-6">
-            <UserSearch />
+          <div className="hidden md:flex flex-1 justify-center px-8">
+            <div className="w-full max-w-md">
+              <UserSearch />
+            </div>
           </div>
 
           {/* Right: Nav */}
-          <nav className="flex items-center space-x-4">
+          <nav className="flex items-center space-x-2 md:space-x-6">
+
+            {/* Friends Icon */}
+            <NavLink
+              to="/friends"
+              className={({ isActive }) =>
+                `p-2 rounded-full transition-all duration-200 group relative ${isActive
+                  ? "text-purple-600 bg-purple-50"
+                  : "text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+                }`
+              }
+              title="Friends"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+            </NavLink>
+
+            {/* Feed Icon */}
+            <NavLink
+              to="/feed"
+              className={({ isActive }) =>
+                `p-2 rounded-full transition-all duration-200 group relative ${isActive
+                  ? "text-purple-600 bg-purple-50"
+                  : "text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+                }`
+              }
+              title="Feed"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"></path></svg>
+            </NavLink>
 
             {/* Notification Bell */}
             <div className="relative" ref={notificationRef}>
               <button
-                className="relative p-2 text-gray-600 hover:text-purple-600 transition-colors rounded-full hover:bg-gray-100"
+                className="relative p-2 text-gray-500 hover:text-purple-600 hover:bg-gray-100 rounded-full transition-colors focus:outline-none"
                 onClick={() => setShowNotifications(!showNotifications)}
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -72,63 +108,69 @@ const Header = () => {
                 </svg>
 
                 {unreadCount > 0 && (
-                  <span className="absolute top-1 right-1 h-4 w-4 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center border-2 border-white">
-                    {unreadCount}
-                  </span>
+                  <span className="absolute top-1 right-1 h-2.5 w-2.5 bg-red-500 rounded-full ring-2 ring-white animate-pulse"></span>
                 )}
               </button>
 
               {showNotifications && (
-                <NotificationList onClose={() => setShowNotifications(false)} />
+                <div className="absolute right-0 mt-2 w-80 sm:w-96 origin-top-right z-50">
+                  <NotificationList onClose={() => setShowNotifications(false)} />
+                </div>
               )}
             </div>
 
-            {/* FRIENDS Button */}
-            <NavLink
-              to="/friends"
-              className={({ isActive }) =>
-                `px-4 py-2 rounded-lg ${isActive
-                  ? "bg-purple-500 text-white hover:bg-purple-600"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`
-              }
-            >
-              Friends
-            </NavLink>
+            {/* User Profile Dropdown */}
+            <div className="relative ml-2" ref={userMenuRef}>
+              <button
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                className="flex items-center space-x-2 focus:outline-none"
+              >
+                <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-purple-500 to-pink-500 p-[2px]">
+                  <div className="h-full w-full rounded-full bg-white overflow-hidden">
+                    {user?.profilePic ? (
+                      <img src={user.profilePic} alt="User" className="h-full w-full object-cover" />
+                    ) : (
+                      <div className="h-full w-full flex items-center justify-center bg-gray-100 text-purple-600 font-bold text-sm">
+                        {user?.name?.[0]?.toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </button>
 
-            {/* Feed */}
-            <NavLink
-              to="/feed"
-              className={({ isActive }) =>
-                `px-4 py-2 rounded-lg ${isActive
-                  ? "bg-purple-500 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`
-              }
-            >
-              Feed
-            </NavLink>
+              {showUserMenu && (
+                <div className="absolute right-0 mt-3 w-48 bg-white rounded-xl shadow-xl py-2 border border-gray-100 ring-1 ring-black ring-opacity-5 origin-top-right transform transition-all duration-200 z-50">
+                  <div className="px-4 py-3 border-b border-gray-100">
+                    <p className="text-sm font-semibold text-gray-900 truncate">{user?.name}</p>
+                    <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+                  </div>
 
-            {/* Profile */}
-            <NavLink
-              to="/profile"
-              className={({ isActive }) =>
-                `px-4 py-2 rounded-lg ${isActive
-                  ? "bg-purple-500 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`
-              }
-            >
-              Profile
-            </NavLink>
+                  <Link
+                    to="/profile"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition-colors"
+                    onClick={() => setShowUserMenu(false)}
+                  >
+                    My Profile
+                  </Link>
+                  <Link
+                    to="/settings"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition-colors"
+                    onClick={() => setShowUserMenu(false)}
+                  >
+                    Settings
+                  </Link>
 
-            {/* Logout */}
-            <button
-              onClick={handleLogout}
-              className="px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600"
-            >
-              Logout
-            </button>
+                  <div className="border-t border-gray-100 mt-1 pt-1">
+                    <button
+                      onClick={handleLogout}
+                      className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                    >
+                      Logout
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
 
           </nav>
         </div>

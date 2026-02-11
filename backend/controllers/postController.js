@@ -1,0 +1,484 @@
+import Post from "../models/Post.js";
+import User from "../models/User.js";
+import cloudinary from "../config/cloudinary.js";
+import { analyzeText, analyzeImage } from "../services/moderationService.js";
+
+// @desc    Create a new post
+// @route   POST /api/posts
+// @access  Private
+export const createPost = async (req, res) => {
+    try {
+        const { content } = req.body;
+        let imageUrl = "";
+
+        // 1. Image Upload & Moderation
+        if (req.file) {
+            // Placeholder: Analyze image buffer before upload
+            // In real app: await analyzeImage(req.file.buffer);
+
+            // Upload to Cloudinary
+            const b64 = Buffer.from(req.file.buffer).toString("base64");
+            let dataURI = "data:" + req.file.mimetype + ";base64," + b64;
+            const result = await cloudinary.uploader.upload(dataURI, {
+                folder: "senti_posts",
+            });
+            imageUrl = result.secure_url;
+        }
+
+        // 2. Text Moderation
+        const moderationResult = await analyzeText(content);
+
+        // Construct Post Object
+        const newPost = new Post({
+            author: req.user._id,
+            content: moderationResult.safe ? content : moderationResult.moderatedText,
+            image: imageUrl,
+            originalContent: moderationResult.safe ? undefined : content,
+            isModerated: !moderationResult.safe,
+            moderationStatus: moderationResult.safe ? "safe" : "flagged", // Simple logic for now
+            toxicityScore: moderationResult.score,
+        });
+
+        const savedPost = await newPost.save();
+
+        // Populate author details for immediate frontend display
+        await savedPost.populate("author", "name profilePic");
+
+        res.status(201).json(savedPost);
+    } catch (error) {
+        console.error("Error creating post:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+// @desc    Get all posts (Feed)
+// @route   GET /api/posts/feed
+// @access  Private
+export const getFeedPosts = async (req, res) => {
+    try {
+        // For now, return all posts. Later: filter by friends.
+        const posts = await Post.find()
+            .sort({ createdAt: -1 })
+            .populate("author", "name profilePic")
+            .populate("comments.user", "name profilePic")
+            .populate("comments.replies.user", "name profilePic");
+
+        res.json(posts);
+    } catch (error) {
+        console.error("Error fetching feed:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+// @desc    Get posts by user ID
+// @route   GET /api/posts/user/:userId
+// @access  Private
+export const getUserPosts = async (req, res) => {
+    try {
+        const posts = await Post.find({ author: req.params.userId })
+            .sort({ createdAt: -1 })
+            .populate("author", "name profilePic")
+            .populate("comments.user", "name profilePic")
+            .populate("comments.replies.user", "name profilePic");
+
+        res.json(posts);
+    } catch (error) {
+        console.error("Error fetching user posts:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+// @desc    Like/Unlike a post
+// @route   PUT /api/posts/:id/like
+// @access  Private
+export const likePost = async (req, res) => {
+    try {
+        const post = await Post.findById(req.params.id);
+        if (!post) {
+            return res.status(404).json({ message: "Post not found" });
+        }
+
+        // Check if post has already been liked
+        if (post.likes.includes(req.user._id)) {
+            // Unlike
+            post.likes = post.likes.filter(
+                (id) => id.toString() !== req.user._id.toString()
+            );
+        } else {
+            // Like
+            post.likes.push(req.user._id);
+        }
+
+        await post.save();
+        res.json(post.likes);
+    } catch (error) {
+        console.error("Error liking post:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+// @desc    Comment on a post
+// @route   POST /api/posts/:id/comment
+// @access  Private
+export const commentPost = async (req, res) => {
+    try {
+        const { text } = req.body;
+        const post = await Post.findById(req.params.id);
+
+        if (!post) {
+            return res.status(404).json({ message: "Post not found" });
+        }
+
+        // Basic comment moderation check (optional, but good practice)
+        const moderationResult = await analyzeText(text);
+
+        const newComment = {
+            user: req.user._id,
+            text: moderationResult.safe ? text : moderationResult.moderatedText,
+            createdAt: new Date(),
+        };
+
+        post.comments.unshift(newComment);
+        await post.save();
+
+        // Populate the new comment's user to return to frontend
+        // We need to fetch the post again or just manually populate the response
+        const updatedPost = await Post.findById(req.params.id)
+            .populate("comments.user", "name profilePic");
+
+        res.json(updatedPost.comments);
+    } catch (error) {
+        console.error("Error commenting on post:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+// Helper to find comment recursively
+const findComment = (comments, targetId) => {
+    for (let comment of comments) {
+        if (comment._id.toString() === targetId) {
+            return comment;
+        }
+        if (comment.replies && comment.replies.length > 0) {
+            const found = findComment(comment.replies, targetId);
+            if (found) return found;
+        }
+    }
+    return null;
+};
+
+// Helper to delete comment recursively
+const deleteCommentRecursive = (comments, targetId) => {
+    for (let i = 0; i < comments.length; i++) {
+        if (comments[i]._id.toString() === targetId) {
+            comments.splice(i, 1);
+            return true;
+        }
+        if (comments[i].replies && comments[i].replies.length > 0) {
+            const deleted = deleteCommentRecursive(comments[i].replies, targetId);
+            if (deleted) return true;
+        }
+    }
+    return false;
+};
+
+// @desc    Reply to a comment
+// @route   POST /api/posts/:id/comments/:commentId/reply
+// @access  Private
+export const replyToComment = async (req, res) => {
+    try {
+        const { text } = req.body;
+        const post = await Post.findById(req.params.id);
+
+        if (!post) {
+            return res.status(404).json({ message: "Post not found" });
+        }
+
+        const comment = findComment(post.comments, req.params.commentId);
+        if (!comment) {
+            return res.status(404).json({ message: "Comment not found" });
+        }
+
+        // Moderation
+        const moderationResult = await analyzeText(text);
+
+        const newReply = {
+            user: req.user._id,
+            text: moderationResult.safe ? text : moderationResult.moderatedText,
+            createdAt: new Date(),
+        };
+
+        comment.replies.push(newReply);
+        await post.save();
+
+        const updatedPost = await Post.findById(req.params.id)
+            .populate({
+                path: "comments",
+                populate: [
+                    { path: "user", select: "name profilePic" },
+                    {
+                        path: "replies",
+                        populate: [
+                            { path: "user", select: "name profilePic" },
+                            {
+                                path: "replies",
+                                populate: { path: "user", select: "name profilePic" }
+                            }
+                        ]
+                    }
+                ]
+            });
+
+        // Return the whole updated post comments to ensure UI consistency
+        res.json(updatedPost.comments);
+    } catch (error) {
+        console.error("Error replying to comment:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+// @desc    Edit a comment
+// @route   PUT /api/posts/:id/comments/:commentId
+// @access  Private
+export const editComment = async (req, res) => {
+    try {
+        const { text } = req.body;
+        const post = await Post.findById(req.params.id);
+
+        if (!post) {
+            return res.status(404).json({ message: "Post not found" });
+        }
+
+        const comment = findComment(post.comments, req.params.commentId);
+        if (!comment) {
+            return res.status(404).json({ message: "Comment not found" });
+        }
+
+        // Check ownership
+        if (comment.user.toString() !== req.user._id.toString()) {
+            return res.status(401).json({ message: "User not authorized" });
+        }
+
+        // Moderation
+        const moderationResult = await analyzeText(text);
+
+        comment.text = moderationResult.safe ? text : moderationResult.moderatedText;
+        comment.isEdited = true;
+
+        await post.save();
+
+        // Return updated comments
+        const updatedPost = await Post.findById(req.params.id)
+            .populate({
+                path: "comments",
+                populate: [
+                    { path: "user", select: "name profilePic" },
+                    {
+                        path: "replies",
+                        populate: [
+                            { path: "user", select: "name profilePic" },
+                            {
+                                path: "replies",
+                                populate: { path: "user", select: "name profilePic" }
+                            }
+                        ]
+                    }
+                ]
+            });
+
+        res.json(updatedPost.comments);
+    } catch (error) {
+        console.error("Error editing comment:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+// @desc    Delete a comment
+// @route   DELETE /api/posts/:id/comments/:commentId
+// @access  Private
+// note: user can delete own comment
+export const deleteComment = async (req, res) => {
+    try {
+        const post = await Post.findById(req.params.id);
+
+        if (!post) {
+            return res.status(404).json({ message: "Post not found" });
+        }
+
+        const comment = findComment(post.comments, req.params.commentId);
+        if (!comment) {
+            return res.status(404).json({ message: "Comment not found" });
+        }
+
+        // Check ownership (Comment Author OR Post Author can delete?) 
+        // Requirement: "user can delete its own comment"
+        if (comment.user.toString() !== req.user._id.toString()) {
+            return res.status(401).json({ message: "User not authorized" });
+        }
+
+        deleteCommentRecursive(post.comments, req.params.commentId);
+
+        await post.save();
+
+        // Return updated comments needed for UI update
+        const updatedPost = await Post.findById(req.params.id)
+            .populate({
+                path: "comments",
+                populate: [
+                    { path: "user", select: "name profilePic" },
+                    {
+                        path: "replies",
+                        populate: [
+                            { path: "user", select: "name profilePic" },
+                            {
+                                path: "replies",
+                                populate: { path: "user", select: "name profilePic" }
+                            }
+                        ]
+                    }
+                ]
+            });
+
+        res.json(updatedPost.comments);
+    } catch (error) {
+        console.error("Error deleting comment:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+// @desc    Hide a comment
+// @route   PUT /api/posts/:id/comments/:commentId/hide
+// @access  Private
+// note: post owner can hide comment
+export const hideComment = async (req, res) => {
+    try {
+        const post = await Post.findById(req.params.id);
+
+        if (!post) {
+            return res.status(404).json({ message: "Post not found" });
+        }
+
+        const comment = findComment(post.comments, req.params.commentId);
+        if (!comment) {
+            return res.status(404).json({ message: "Comment not found" });
+        }
+
+        // Check ownership: Only Post Author can hide comments
+        if (post.author.toString() !== req.user._id.toString()) {
+            return res.status(401).json({ message: "User not authorized" });
+        }
+
+        // Toggle hide
+        comment.isHidden = !comment.isHidden;
+
+        await post.save();
+
+        const updatedPost = await Post.findById(req.params.id)
+            .populate({
+                path: "comments",
+                populate: [
+                    { path: "user", select: "name profilePic" },
+                    {
+                        path: "replies",
+                        populate: [
+                            { path: "user", select: "name profilePic" },
+                            {
+                                path: "replies",
+                                populate: { path: "user", select: "name profilePic" }
+                            }
+                        ]
+                    }
+                ]
+            });
+
+        res.json(updatedPost.comments);
+    } catch (error) {
+        console.error("Error hiding comment:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+// @desc    Update a post
+// @route   PUT /api/posts/:id
+// @access  Private
+export const updatePost = async (req, res) => {
+    try {
+        const { content } = req.body;
+        const post = await Post.findById(req.params.id);
+
+        if (!post) {
+            return res.status(404).json({ message: "Post not found" });
+        }
+
+        // Check ownership
+        if (post.author.toString() !== req.user._id.toString()) {
+            return res.status(401).json({ message: "User not authorized" });
+        }
+
+        // Moderation for updated content
+        const moderationResult = await analyzeText(content);
+
+        post.content = moderationResult.safe ? content : moderationResult.moderatedText;
+        post.isModerated = !moderationResult.safe;
+        post.moderationStatus = moderationResult.safe ? "safe" : "flagged";
+        if (!moderationResult.safe) {
+            post.originalContent = content;
+            post.toxicityScore = moderationResult.score;
+        } else {
+            // If safe now, maybe clear original content or keep history? 
+            // For now, let's just update standard fields.
+            post.originalContent = undefined;
+            post.toxicityScore = undefined;
+        }
+
+        const updatedPost = await post.save();
+        await updatedPost.populate("author", "name profilePic");
+        await updatedPost.populate("comments.user", "name profilePic");
+
+        res.json(updatedPost);
+    } catch (error) {
+        console.error("Error updating post:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+// @desc    Delete a post
+// @route   DELETE /api/posts/:id
+// @access  Private
+export const deletePost = async (req, res) => {
+    try {
+        const post = await Post.findById(req.params.id);
+
+        if (!post) {
+            return res.status(404).json({ message: "Post not found" });
+        }
+
+        // Check ownership
+        if (post.author.toString() !== req.user._id.toString()) {
+            return res.status(401).json({ message: "User not authorized" });
+        }
+
+        // Delete image from Cloudinary if exists
+        if (post.image) {
+            try {
+                // Extract public_id from URL
+                // URL format: https://res.cloudinary.com/cloud_name/image/upload/v12345/senti_posts/filename.jpg
+                const parts = post.image.split("/");
+                const filename = parts[parts.length - 1];
+                const publicId = `senti_posts/${filename.split(".")[0]}`;
+
+                await cloudinary.uploader.destroy(publicId);
+            } catch (err) {
+                console.error("Error deleting image from Cloudinary:", err);
+                // Continue to delete post even if image deletion fails
+            }
+        }
+
+        await post.deleteOne();
+
+        res.json({ message: "Post removed" });
+    } catch (error) {
+        console.error("Error deleting post:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+};

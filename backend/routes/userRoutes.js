@@ -2,9 +2,12 @@
 import express from "express";
 import User from "../models/User.js";
 import protect from "../middleware/authMiddleware.js";
-import { getUserProfile } from "../controllers/userController.js";
+import { getUserProfile, getSuggestedUsers } from "../controllers/userController.js";
 
 const router = express.Router();
+
+// --- SUGGESTED USERS ---
+router.get("/suggested", protect, getSuggestedUsers);
 
 // --- SEARCH USERS ---
 router.get("/search", protect, async (req, res) => {
