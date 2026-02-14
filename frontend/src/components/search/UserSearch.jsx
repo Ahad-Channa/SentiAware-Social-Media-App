@@ -126,17 +126,18 @@ const UserSearch = () => {
           setQuery(e.target.value);
           setShow(true);
         }}
-        className="w-full px-4 py-2 rounded-full border border-gray-300 
-                  focus:outline-none focus:ring-2 focus:ring-purple-500 
-                  focus:border-purple-500 shadow-sm"
+        className="w-full px-4 py-2 rounded-full border border-gray-200 
+                  bg-gray-50 text-gray-900 placeholder-gray-500
+                  focus:outline-none focus:ring-2 focus:ring-gray-200 
+                  focus:border-gray-300 focus:bg-white transition-all shadow-sm"
       />
 
       {show && results.length > 0 && (
-        <div className="absolute mt-2 bg-white shadow-lg rounded-xl w-full p-2 z-50 space-y-1">
+        <div className="absolute mt-2 bg-white shadow-lg rounded-xl w-full p-2 z-50 space-y-1 border border-gray-100 ring-1 ring-black ring-opacity-5">
           {results.map((user) => (
             <div
               key={user._id}
-              className="flex items-center justify-between p-2 hover:bg-gray-100 rounded-lg transition"
+              className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
             >
               {/* Left side → user info */}
               <Link

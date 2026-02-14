@@ -10,7 +10,7 @@ const countComments = (comments) => {
     }, 0);
 };
 
-// Recursive Comment Component
+// Recursive Comment Component - Minimal Design
 const CommentItem = ({ comment, postId, postAuthorId, onUpdateComments }) => {
     const [isReplying, setIsReplying] = useState(false);
     const [replyText, setReplyText] = useState("");
@@ -74,76 +74,77 @@ const CommentItem = ({ comment, postId, postAuthorId, onUpdateComments }) => {
     };
 
     return (
-        <div className="flex space-x-3 mt-4">
-            <Link to={`/profile/${user._id}`} className="flex-shrink-0">
+        <div className="flex gap-3 mt-4 group">
+            <Link to={`/profile/${user._id}`} className="flex-shrink-0 mt-1">
                 {user.profilePic ? (
                     <img
                         src={user.profilePic}
                         alt={user.name}
-                        className="h-8 w-8 rounded-full object-cover"
+                        className="h-8 w-8 rounded-full object-cover ring-1 ring-gray-100"
                     />
                 ) : (
-                    <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 text-xs font-bold">
+                    <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 text-xs font-bold border border-gray-200">
                         {user.name?.[0]?.toUpperCase()}
                     </div>
                 )}
             </Link>
-            <div className="flex-1">
-                <div className={`bg-gray-50 rounded-2xl px-4 py-2 inline-block min-w-[200px] ${comment.isHidden ? 'opacity-75 border border-dashed border-gray-300' : ''}`}>
-                    <div className="flex items-center space-x-2 mb-1">
-                        <Link to={`/profile/${user._id}`} className="font-semibold text-sm hover:underline">
+            <div className="flex-1 min-w-0">
+                <div className={` ${comment.isHidden ? 'opacity-60' : ''}`}>
+                    <div className="flex items-center gap-2 mb-0.5">
+                        <Link to={`/profile/${user._id}`} className="font-semibold text-sm text-gray-900 hover:underline">
                             {user.name}
                         </Link>
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs text-gray-400">
                             {comment.createdAt && formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
                         </span>
                         {comment.isEdited && <span className="text-[10px] text-gray-400">(edited)</span>}
-                        {comment.isHidden && <span className="text-[10px] text-red-400 pl-2">Hidden</span>}
+                        {comment.isHidden && <span className="text-[10px] text-red-500 font-medium bg-red-50 px-1 rounded">Hidden</span>}
                     </div>
 
                     {isHiddenForViewer ? (
                         <p className="text-gray-400 italic text-sm">Comment hidden by author</p>
                     ) : (
                         isEditing ? (
-                            <div>
+                            <div className="mt-1">
                                 <input
-                                    className="w-full text-sm p-1 border rounded"
+                                    className="w-full text-sm p-2 border border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-100 bg-white"
                                     value={editText}
                                     onChange={(e) => setEditText(e.target.value)}
+                                    autoFocus
                                 />
-                                <div className="flex space-x-2 mt-1 text-xs">
-                                    <button onClick={handleEditSubmit} className="text-blue-600">Save</button>
-                                    <button onClick={() => setIsEditing(false)} className="text-gray-500">Cancel</button>
+                                <div className="flex gap-2 mt-2 text-xs">
+                                    <button onClick={handleEditSubmit} className="text-white bg-blue-500 hover:bg-blue-600 px-3 py-1 rounded-md transition-colors">Save</button>
+                                    <button onClick={() => setIsEditing(false)} className="text-gray-600 hover:bg-gray-100 px-3 py-1 rounded-md transition-colors">Cancel</button>
                                 </div>
                             </div>
                         ) : (
-                            <p className="text-gray-800 text-sm whitespace-pre-wrap">{comment.text}</p>
+                            <p className="text-gray-800 text-sm leading-relaxed">{comment.text}</p>
                         )
                     )}
                 </div>
 
                 {/* Actions Line */}
-                <div className="flex items-center space-x-3 mt-1 ml-2">
+                <div className="flex items-center gap-3 mt-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                     <button
                         onClick={() => setIsReplying(!isReplying)}
-                        className="text-xs text-gray-500 hover:text-purple-600 font-medium cursor-pointer"
+                        className="text-xs text-gray-500 hover:text-gray-900 font-medium cursor-pointer"
                     >
                         Reply
                     </button>
 
                     {isCommentAuthor && !isHiddenForViewer && (
                         <>
-                            <button onClick={() => setIsEditing(!isEditing)} className="text-xs text-gray-400 hover:text-blue-600">
+                            <button onClick={() => setIsEditing(!isEditing)} className="text-xs text-gray-500 hover:text-blue-600">
                                 Edit
                             </button>
-                            <button onClick={handleDeleteClick} className="text-xs text-gray-400 hover:text-red-600">
+                            <button onClick={handleDeleteClick} className="text-xs text-gray-500 hover:text-red-600">
                                 Delete
                             </button>
                         </>
                     )}
 
                     {isPostOwner && (
-                        <button onClick={handleHide} className="text-xs text-gray-400 hover:text-orange-600">
+                        <button onClick={handleHide} className="text-xs text-gray-500 hover:text-orange-600">
                             {comment.isHidden ? "Unhide" : "Hide"}
                         </button>
                     )}
@@ -151,27 +152,27 @@ const CommentItem = ({ comment, postId, postAuthorId, onUpdateComments }) => {
 
                 {/* Reply Input */}
                 {isReplying && (
-                    <div className="mt-2 flex items-center space-x-2 max-w-md">
+                    <div className="mt-3 flex items-center gap-2 max-w-lg">
                         <input
                             type="text"
                             value={replyText}
                             onChange={(e) => setReplyText(e.target.value)}
                             placeholder={`Reply to ${user.name}...`}
-                            className="flex-1 bg-white border border-gray-200 rounded-full px-3 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-purple-200"
+                            className="flex-1 bg-white border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-200"
                             autoFocus
                         />
                         <button
                             onClick={handleReplySubmit}
-                            className="text-xs bg-purple-100 text-purple-600 px-2 py-1 rounded hover:bg-purple-200"
+                            className="text-xs bg-gray-900 text-white px-3 py-1.5 rounded-lg hover:bg-black transition-colors"
                         >
                             Send
                         </button>
                     </div>
                 )}
 
-                {/* Recursive Nested Replies */}
+                {/* Recursive Nested Replies - Vertical Line Style */}
                 {comment.replies && comment.replies.length > 0 && (
-                    <div className="border-l-2 border-gray-100 pl-3">
+                    <div className="mt-2 pl-3 border-l-2 border-gray-100">
                         {comment.replies.map((reply) => (
                             <CommentItem
                                 key={reply._id}
@@ -187,20 +188,20 @@ const CommentItem = ({ comment, postId, postAuthorId, onUpdateComments }) => {
 
             {/* Delete Confirmation Modal for Comment */}
             {showDeleteModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-                    <div className="bg-white rounded-xl p-6 w-full max-w-sm mx-4 shadow-xl">
-                        <h3 className="text-xl font-bold text-gray-900 mb-2">Delete Comment</h3>
-                        <p className="text-gray-500 mb-6">Are you sure you want to delete this comment? This action cannot be undone.</p>
-                        <div className="flex justify-end space-x-3">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
+                    <div className="bg-white rounded-xl p-6 w-full max-w-sm mx-4 shadow-xl border border-gray-100 animate-in fade-in zoom-in duration-200">
+                        <h3 className="text-lg font-bold text-gray-900 mb-2">Delete Comment?</h3>
+                        <p className="text-gray-500 text-sm mb-6">This action cannot be undone.</p>
+                        <div className="flex justify-end gap-3">
                             <button
                                 onClick={() => setShowDeleteModal(false)}
-                                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-medium transition-colors"
+                                className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg font-medium transition-colors"
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={confirmDelete}
-                                className="px-4 py-2 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-colors"
+                                className="px-4 py-2 text-sm bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors"
                             >
                                 Delete
                             </button>
@@ -292,23 +293,23 @@ const Post = ({ post, onPostUpdated, onPostDeleted }) => {
     };
 
     return (
-        <div className="bg-white rounded-xl shadow-sm p-6 mb-4 relative">
+        <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6 transition-all hover:border-gray-300">
             {/* Delete Confirmation Modal */}
             {showDeleteModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-                    <div className="bg-white rounded-xl p-6 w-full max-w-sm mx-4 shadow-xl">
-                        <h3 className="text-xl font-bold text-gray-900 mb-2">Delete Post</h3>
-                        <p className="text-gray-500 mb-6">Are you sure you want to delete this post? This action cannot be undone.</p>
-                        <div className="flex justify-end space-x-3">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
+                    <div className="bg-white rounded-xl p-6 w-full max-w-sm mx-4 shadow-xl border border-gray-100 animate-in fade-in zoom-in duration-200">
+                        <h3 className="text-lg font-bold text-gray-900 mb-2">Delete Post?</h3>
+                        <p className="text-gray-500 text-sm mb-6">Are you sure? This cannot be undone.</p>
+                        <div className="flex justify-end gap-3">
                             <button
                                 onClick={() => setShowDeleteModal(false)}
-                                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-medium transition-colors"
+                                className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg font-medium transition-colors"
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={handleDelete}
-                                className="px-4 py-2 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-colors"
+                                className="px-4 py-2 text-sm bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors"
                             >
                                 Delete
                             </button>
@@ -318,26 +319,26 @@ const Post = ({ post, onPostUpdated, onPostDeleted }) => {
             )}
 
             {/* Header */}
-            <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center space-x-3">
+            <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center gap-3">
                     <Link to={`/profile/${post.author._id}`}>
                         {post.author.profilePic ? (
                             <img
                                 src={post.author.profilePic}
                                 alt={post.author.name}
-                                className="h-10 w-10 rounded-full object-cover"
+                                className="h-10 w-10 rounded-full object-cover ring-2 ring-gray-50"
                             />
                         ) : (
-                            <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-bold">
+                            <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 font-bold border border-gray-200">
                                 {post.author.name?.[0]?.toUpperCase()}
                             </div>
                         )}
                     </Link>
                     <div>
-                        <Link to={`/profile/${post.author._id}`} className="font-semibold text-gray-900 hover:underline">
+                        <Link to={`/profile/${post.author._id}`} className="font-semibold text-gray-900 hover:underline block leading-tight">
                             {post.author.name}
                         </Link>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-xs text-gray-500 mt-0.5">
                             {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}
                         </p>
                     </div>
@@ -348,33 +349,33 @@ const Post = ({ post, onPostUpdated, onPostDeleted }) => {
                     <div className="relative" ref={menuRef}>
                         <button
                             onClick={() => setShowMenu(!showMenu)}
-                            className="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-100"
+                            className="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-50 transition-colors"
                         >
-                            <span className="text-xl">•••</span>
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z"></path>
+                            </svg>
                         </button>
 
                         {showMenu && (
-                            <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border border-gray-100 ring-1 ring-black ring-opacity-5">
-                                <div className="py-1">
-                                    <button
-                                        onClick={() => {
-                                            setIsEditing(true);
-                                            setShowMenu(false);
-                                        }}
-                                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                                    >
-                                        ✏️ Edit
-                                    </button>
-                                    <button
-                                        onClick={() => {
-                                            setShowDeleteModal(true);
-                                            setShowMenu(false);
-                                        }}
-                                        className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
-                                    >
-                                        🗑️ Delete
-                                    </button>
-                                </div>
+                            <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl z-10 border border-gray-100 ring-1 ring-black/5 py-1">
+                                <button
+                                    onClick={() => {
+                                        setIsEditing(true);
+                                        setShowMenu(false);
+                                    }}
+                                    className="block w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                                >
+                                    Edit Post
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setShowDeleteModal(true);
+                                        setShowMenu(false);
+                                    }}
+                                    className="block w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                                >
+                                    Delete Post
+                                </button>
                             </div>
                         )}
                     </div>
@@ -385,85 +386,115 @@ const Post = ({ post, onPostUpdated, onPostDeleted }) => {
             {isEditing ? (
                 <div className="mb-4">
                     <textarea
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-200 focus:border-purple-500 outline-none resize-none"
+                        className="w-full p-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none resize-none bg-gray-50 text-gray-900 text-base"
                         rows="4"
                         value={editContent}
                         onChange={(e) => setEditContent(e.target.value)}
                     />
-                    <div className="flex justify-end space-x-2 mt-2">
+                    <div className="flex justify-end gap-2 mt-3">
                         <button
                             onClick={() => setIsEditing(false)}
-                            className="px-3 py-1 text-gray-600 hover:bg-gray-100 rounded-lg"
+                            className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                         >
                             Cancel
                         </button>
                         <button
                             onClick={handleUpdate}
-                            className="px-3 py-1 bg-purple-500 text-white rounded-lg hover:bg-purple-600"
+                            className="px-4 py-2 text-sm bg-gray-900 text-white rounded-lg hover:bg-black transition-colors"
                         >
-                            Save
+                            Save Changes
                         </button>
                     </div>
                 </div>
             ) : (
-                <p className="text-gray-800 mb-4 whitespace-pre-wrap">{post.content}</p>
+                <div className="mb-4">
+                    <p className="text-gray-900 leading-relaxed whitespace-pre-wrap text-[15px]">{post.content}</p>
+                </div>
             )}
 
             {post.image && (
-                <div className="mb-4 rounded-xl overflow-hidden">
-                    <img src={post.image} alt="Post content" className="w-full h-auto object-contain" />
+                <div className="mb-5 rounded-xl overflow-hidden border border-gray-100">
+                    <img src={post.image} alt="Post content" className="w-full h-auto object-cover max-h-[500px]" />
                 </div>
             )}
 
             {/* Moderation Badge */}
             {post.isModerated && (
-                <div className="text-xs text-orange-500 mb-2">
-                    ⚠️ AI Moderated Content
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-600 text-xs font-medium rounded-full mb-4">
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    AI Moderated
                 </div>
             )}
 
-            {/* Actions */}
-            <div className="flex items-center justify-between border-t border-gray-100 pt-4">
-                <div className="flex items-center space-x-6">
+            {/* Actions Bar */}
+            <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                <div className="flex items-center gap-6">
                     <button
                         onClick={handleLike}
-                        className={`flex items-center space-x-2 ${isLiked ? 'text-red-500' : 'text-gray-500 hover:text-red-500'}`}
+                        className={`flex items-center gap-2 text-sm font-medium transition-colors ${isLiked ? 'text-rose-500' : 'text-gray-500 hover:text-gray-700'}`}
                     >
-                        <span className="text-xl">{isLiked ? '❤️' : '🤍'}</span>
-                        <span>{post.likes.length} Likes</span>
+                        {/* Heart Icon */}
+                        <svg className={`w-5 h-5 ${isLiked ? 'fill-current' : 'stroke-current fill-none'}`} viewBox="0 0 24 24" strokeWidth="2">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                        </svg>
+                        <span>{post.likes.length}</span>
                     </button>
 
                     <button
                         onClick={() => setShowComments(!showComments)}
-                        className="flex items-center space-x-2 text-gray-500 hover:text-blue-500"
+                        className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
                     >
-                        <span className="text-xl">💬</span>
-                        <span>{totalComments} Comments</span>
+                        {/* Chat Bubble Icon */}
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                        </svg>
+                        {totalComments > 0 ? (
+                            <span>{totalComments}</span>
+                        ) : (
+                            <span>Comment</span>
+                        )}
                     </button>
                 </div>
+
+                {/* Share/Bookmark placeholder - could be added here for balance */}
             </div>
 
             {/* Comments Section */}
             {showComments && (
-                <div className="mt-4 pt-4 border-t border-gray-100">
-                    <form onSubmit={handleComment} className="flex items-center space-x-2 mb-4">
-                        <input
-                            type="text"
-                            value={commentText}
-                            onChange={(e) => setCommentText(e.target.value)}
-                            placeholder="Write a comment..."
-                            className="flex-1 bg-gray-50 border border-gray-200 rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-100"
-                        />
-                        <button
-                            type="submit"
-                            disabled={isSubmittingComment || !commentText.trim()}
-                            className="text-purple-600 font-semibold disabled:text-gray-300"
-                        >
-                            Post
-                        </button>
+                <div className="mt-4 pt-0">
+                    <form onSubmit={handleComment} className="flex items-center gap-3 mb-6 mt-2 relative">
+                        {currentUser?.profilePic ? (
+                            <img src={currentUser.profilePic} alt="" className="w-8 h-8 rounded-full object-cover ring-1 ring-gray-100" />
+                        ) : (
+                            <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 text-xs font-bold">
+                                {currentUser?.name?.[0]}
+                            </div>
+                        )}
+                        <div className="flex-1 relative">
+                            <input
+                                type="text"
+                                value={commentText}
+                                onChange={(e) => setCommentText(e.target.value)}
+                                placeholder="Write a comment..."
+                                className="w-full bg-gray-50 border border-transparent hover:border-gray-200 focus:border-gray-300 rounded-full pl-4 pr-12 py-2.5 text-sm focus:outline-none focus:ring-0 transition-colors"
+                            />
+                            {commentText.trim() && (
+                                <button
+                                    type="submit"
+                                    disabled={isSubmittingComment}
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-900 p-1.5 rounded-full hover:bg-gray-200 transition-colors disabled:opacity-50"
+                                >
+                                    <svg className="w-4 h-4 transform rotate-90" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+                                    </svg>
+                                </button>
+                            )}
+                        </div>
                     </form>
 
-                    <div className="space-y-0">
+                    <div className="space-y-4">
                         {post.comments.map((comment) => (
                             <CommentItem
                                 key={comment._id}

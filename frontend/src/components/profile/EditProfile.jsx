@@ -84,75 +84,92 @@ const EditProfile = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-8">
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-4">Edit Profile</h1>
+    <div className="min-h-screen bg-gray-50 pt-12 pb-12">
+      <div className="max-w-xl mx-auto px-4 sm:px-6">
 
-        <div className="bg-white rounded-xl shadow-sm p-8">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="flex items-center space-x-6">
-              <div className="h-24 w-24 rounded-full bg-purple-400 overflow-hidden flex items-center justify-center text-white text-3xl font-bold">
-                {avatarPreview ? (
-                  <img
-                    src={avatarPreview}
-                    alt="Avatar Preview"
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  user.name?.[0] || 'U'
-                )}
+        <div className="text-center mb-8">
+          <h1 className="text-2xl font-black text-gray-900 tracking-tight mb-2" style={{ fontFamily: "'Outfit', sans-serif" }}>Edit Profile</h1>
+          <p className="text-gray-500">Update your personal details and profile picture.</p>
+        </div>
+
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+          <form onSubmit={handleSubmit} className="p-8 space-y-6">
+
+            {/* Avatar Upload */}
+            <div className="flex flex-col items-center">
+              <div className="relative group cursor-pointer">
+                <div className="h-28 w-28 rounded-full border-4 border-white shadow-sm bg-gray-100 overflow-hidden ring-1 ring-gray-100">
+                  {avatarPreview ? (
+                    <img
+                      src={avatarPreview}
+                      alt="Avatar Preview"
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="h-full w-full flex items-center justify-center text-gray-400 text-4xl font-bold">
+                      {user.name?.[0] || 'U'}
+                    </div>
+                  )}
+                </div>
+                <label htmlFor="pfp-upload" className="absolute inset-0 flex items-center justify-center bg-black/40 text-white opacity-0 group-hover:opacity-100 transition-opacity rounded-full cursor-pointer">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                </label>
+                <input id="pfp-upload" type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
               </div>
-              <input type="file" accept="image/*" onChange={handleFileChange} />
+              <p className="mt-3 text-xs text-gray-400">Click to change avatar</p>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Full Name</label>
-              <input
-                type="text"
-                name="fullName"
-                value={formData.fullName}
-                onChange={handleChange}
-                className="mt-1 block w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
-                required
-              />
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-1.5">Full Name</label>
+                <input
+                  type="text"
+                  name="fullName"
+                  value={formData.fullName}
+                  onChange={handleChange}
+                  className="block w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 focus:bg-white focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all outline-none"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-1.5">Bio</label>
+                <textarea
+                  name="bio"
+                  value={formData.bio}
+                  onChange={handleChange}
+                  rows={3}
+                  className="block w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 focus:bg-white focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all outline-none resize-none"
+                  placeholder="Tell us about yourself..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-1.5">Location</label>
+                <input
+                  type="text"
+                  name="location"
+                  value={formData.location}
+                  onChange={handleChange}
+                  className="block w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 focus:bg-white focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all outline-none"
+                  placeholder="City, Country"
+                />
+              </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Bio</label>
-              <textarea
-                name="bio"
-                value={formData.bio}
-                onChange={handleChange}
-                rows={4}
-                className="mt-1 block w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 resize-none"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Location</label>
-              <input
-                type="text"
-                name="location"
-                value={formData.location}
-                onChange={handleChange}
-                className="mt-1 block w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
-              />
-            </div>
-
-            <div className="flex items-center justify-end space-x-4 pt-4">
+            <div className="pt-4 border-t border-gray-100 flex items-center gap-3">
               <button
                 type="button"
                 onClick={() => navigate('/profile')}
-                className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-gray-700 font-semibold hover:bg-gray-50 transition-colors"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={isLoading}
-                className={`px-6 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 flex items-center ${
-                  isLoading ? 'opacity-75 cursor-not-allowed' : ''
-                }`}
+                className={`flex-1 px-4 py-2.5 bg-gray-900 text-white rounded-xl font-semibold hover:bg-gray-800 transition-colors shadow-sm ${isLoading ? 'opacity-75 cursor-not-allowed' : ''
+                  }`}
               >
                 {isLoading ? 'Saving...' : 'Save Changes'}
               </button>
