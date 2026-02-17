@@ -22,6 +22,13 @@ const Header = () => {
   useEffect(() => {
     if (user) {
       dispatch(fetchNotifications());
+
+      // Poll for notifications every 5 seconds
+      const intervalId = setInterval(() => {
+        dispatch(fetchNotifications());
+      }, 5000);
+
+      return () => clearInterval(intervalId);
     }
   }, [dispatch, user]);
 

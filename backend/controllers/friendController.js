@@ -48,6 +48,7 @@ export const sendFriendRequest = async (req, res) => {
     // Create Notification for recipient
     await Notification.create({
       recipient: other, // The person receiving the request
+      sender: me,       // The person sending the request
       message: `${myData.name} sent you a friend request`,
       type: "friend_request",
       relatedId: me, // Link to the user who sent it
@@ -120,6 +121,7 @@ export const acceptFriendRequest = async (req, res) => {
     // Create Notification for sender (who is now accepted)
     await Notification.create({
       recipient: other, // The person who sent the request originally
+      sender: me,       // The person accepting the request
       message: `${myData.name} accepted your friend request`,
       type: "system", // or separate 'friend_accept' type if added to enum
       relatedId: me,

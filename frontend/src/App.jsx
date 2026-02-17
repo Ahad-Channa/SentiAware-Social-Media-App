@@ -12,6 +12,7 @@ import { loadUserFromStorage } from './redux/authSlice';
 import PublicProfile from "./components/profile/PublicProfile";
 import FriendsList from "./components/friends/FriendsList";
 import FriendRequests from "./components/friends/FriendRequests";
+import SinglePost from "./components/post/SinglePost";
 
 
 function App() {
@@ -45,6 +46,7 @@ function App() {
           <Route path="/create-post" element={isAuthenticated ? <CreatePost /> : <Navigate to="/login" />} />
           <Route path="/edit-profile" element={isAuthenticated ? <EditProfile /> : <Navigate to="/login" />} />
           <Route path="/profile/:id" element={isAuthenticated ? <PublicProfile /> : <Navigate to="/login" />} />
+          <Route path="/post/:id" element={isAuthenticated ? <SinglePost /> : <Navigate to="/login" />} />
           <Route path="*" element={<Navigate to={isAuthenticated ? "/feed" : "/login"} />} />
         </Routes>
       </div>

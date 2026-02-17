@@ -63,6 +63,11 @@ export const getUserPosts = async (userId) => {
   return res.data;
 };
 
+export const getPostById = async (id) => {
+  const res = await api.get(`/api/posts/${id}`);
+  return res.data;
+};
+
 export const likePost = async (id) => {
   const res = await api.put(`/api/posts/${id}/like`);
   return res.data;
@@ -100,6 +105,11 @@ export const deleteComment = async (postId, commentId) => {
 
 export const hideComment = async (postId, commentId) => {
   const res = await api.put(`/api/posts/${postId}/comments/${commentId}/hide`);
+  return res.data;
+};
+
+export const sendFriendRequest = async (id) => {
+  const res = await api.post(`/api/users/friend-request/${id}`);
   return res.data;
 };
 

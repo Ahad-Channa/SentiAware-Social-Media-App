@@ -1,5 +1,6 @@
 import Post from "../models/Post.js";
 import User from "../models/User.js";
+import Notification from "../models/Notification.js";
 import cloudinary from "../config/cloudinary.js";
 import { analyzeText, analyzeImage } from "../services/moderationService.js";
 
@@ -51,19 +52,46 @@ export const createPost = async (req, res) => {
     }
 };
 
-// @desc    Get all posts (Feed)
+// @desc    Get all posts (Feed: Friends + Suggestions Shuffled)
 // @route   GET /api/posts/feed
 // @access  Private
 export const getFeedPosts = async (req, res) => {
     try {
-        // For now, return all posts. Later: filter by friends.
-        const posts = await Post.find()
+        const currentUser = await User.findById(req.user._id);
+        const friendIds = currentUser.friends;
+
+        // 1. Get recent posts from friends (Priority)
+        const friendPosts = await Post.find({ author: { $in: friendIds } })
             .sort({ createdAt: -1 })
+            .limit(20)
             .populate("author", "name profilePic")
             .populate("comments.user", "name profilePic")
             .populate("comments.replies.user", "name profilePic");
 
-        res.json(posts);
+        // 2. Get random suggested posts from non-friends (Discovery)
+        const suggestedPostsAgg = await Post.aggregate([
+            {
+                $match: {
+                    author: { $nin: [...friendIds, req.user._id] }
+                }
+            },
+            { $sample: { size: 10 } }
+        ]);
+
+        // Populate suggested posts since aggregate returns plain objects
+        const suggestedPosts = await Post.populate(suggestedPostsAgg, [
+            { path: "author", select: "name profilePic" },
+            { path: "comments.user", select: "name profilePic" },
+            { path: "comments.replies.user", select: "name profilePic" }
+        ]);
+
+        // 3. Combine and Shuffle
+        const allPosts = [...friendPosts, ...suggestedPosts];
+
+        // Simple shuffle
+        const shuffledPosts = allPosts.sort(() => 0.5 - Math.random());
+
+        res.json(shuffledPosts);
     } catch (error) {
         console.error("Error fetching feed:", error);
         res.status(500).json({ message: "Server error" });
@@ -88,6 +116,27 @@ export const getUserPosts = async (req, res) => {
     }
 };
 
+// @desc    Get single post by ID
+// @route   GET /api/posts/:id
+// @access  Private
+export const getPostById = async (req, res) => {
+    try {
+        const post = await Post.findById(req.params.id)
+            .populate("author", "name profilePic")
+            .populate("comments.user", "name profilePic")
+            .populate("comments.replies.user", "name profilePic");
+
+        if (!post) {
+            return res.status(404).json({ message: "Post not found" });
+        }
+
+        res.json(post);
+    } catch (error) {
+        console.error("Error fetching post:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
 // @desc    Like/Unlike a post
 // @route   PUT /api/posts/:id/like
 // @access  Private
@@ -107,6 +156,19 @@ export const likePost = async (req, res) => {
         } else {
             // Like
             post.likes.push(req.user._id);
+
+            // Create Notification if not self-like
+            if (post.author.toString() !== req.user._id.toString()) {
+                const newNotification = new Notification({
+                    recipient: post.author,
+                    sender: req.user._id,
+                    type: "like",
+                    post: post._id,
+                    message: `${req.user.name} liked your post.`,
+                    relatedId: req.user._id // Backup for old frontend logic
+                });
+                await newNotification.save();
+            }
         }
 
         await post.save();
@@ -140,6 +202,19 @@ export const commentPost = async (req, res) => {
 
         post.comments.unshift(newComment);
         await post.save();
+
+        // Create Notification for post author
+        if (post.author.toString() !== req.user._id.toString()) {
+            const newNotification = new Notification({
+                recipient: post.author,
+                sender: req.user._id,
+                type: "comment",
+                post: post._id,
+                message: `${req.user.name} commented on your post.`,
+                relatedId: req.user._id
+            });
+            await newNotification.save();
+        }
 
         // Populate the new comment's user to return to frontend
         // We need to fetch the post again or just manually populate the response
@@ -210,6 +285,19 @@ export const replyToComment = async (req, res) => {
 
         comment.replies.push(newReply);
         await post.save();
+
+        // Create Notification for comment author
+        if (comment.user.toString() !== req.user._id.toString()) {
+            const newNotification = new Notification({
+                recipient: comment.user,
+                sender: req.user._id,
+                type: "reply",
+                post: post._id,
+                message: `${req.user.name} replied to your comment.`,
+                relatedId: req.user._id
+            });
+            await newNotification.save();
+        }
 
         const updatedPost = await Post.findById(req.params.id)
             .populate({

@@ -6,10 +6,20 @@ import { useNavigate } from 'react-router-dom';
 const NotificationItem = ({ notification, onMarkRead }) => {
     const navigate = useNavigate();
 
+    // Support both old (relatedId as user) and new (sender/post fields) schema
+    const sender = notification.sender || notification.relatedId;
+    const isPostNotification = ["like", "comment", "reply"].includes(notification.type);
+
     const handleClick = () => {
         onMarkRead(notification._id);
-        if (notification.relatedId) {
-            navigate(`/profile/${notification.relatedId._id}`);
+
+        if (isPostNotification && notification.post) {
+            // If it's a post notification, go to the post
+            const postId = typeof notification.post === 'object' ? notification.post._id : notification.post;
+            navigate(`/post/${postId}`);
+        } else if (sender) {
+            // Otherwise go to the user profile (e.g. friend request)
+            navigate(`/profile/${sender._id}`);
         }
     };
 
@@ -19,16 +29,16 @@ const NotificationItem = ({ notification, onMarkRead }) => {
             onClick={handleClick}
         >
             <div className="flex-shrink-0">
-                {notification.relatedId && notification.relatedId.profilePic ? (
+                {sender && sender.profilePic ? (
                     <img
-                        src={notification.relatedId.profilePic}
-                        alt={notification.relatedId.name}
+                        src={sender.profilePic}
+                        alt={sender.name}
                         className="h-10 w-10 rounded-full object-cover border border-gray-200"
                     />
                 ) : (
                     <div className={`h-10 w-10 rounded-full flex items-center justify-center ${!notification.read ? 'bg-purple-200' : 'bg-gray-200'}`}>
                         <span className="text-xs font-bold text-gray-600">
-                            {notification.relatedId?.name?.[0] || "S"}
+                            {sender?.name?.[0] || "S"}
                         </span>
                     </div>
                 )}
@@ -38,9 +48,16 @@ const NotificationItem = ({ notification, onMarkRead }) => {
                 <p className={`text-sm ${!notification.read ? 'text-gray-900 font-medium' : 'text-gray-600'}`}>
                     {notification.message}
                 </p>
-                <span className="text-xs text-gray-400 mt-1 block">
-                    {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
-                </span>
+                <div className="flex items-center gap-2 mt-1">
+                    {/* Optional: Icon based on type */}
+                    {notification.type === 'like' && <span className="text-xs text-rose-500">❤️ Liked your post</span>}
+                    {notification.type === 'comment' && <span className="text-xs text-blue-500">💬 Commented</span>}
+                    {notification.type === 'reply' && <span className="text-xs text-indigo-500">↩️ Replied</span>}
+
+                    <span className="text-xs text-gray-400">
+                        • {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
+                    </span>
+                </div>
             </div>
             {/* Read Indicator Dot */}
             {!notification.read && (

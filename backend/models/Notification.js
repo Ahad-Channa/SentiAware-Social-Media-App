@@ -7,21 +7,30 @@ const notificationSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
-    message: {
-      type: String,
+    sender: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
       required: true,
     },
     type: {
       type: String,
-      enum: ["system", "friend_request", "like", "comment", "mention"],
+      enum: ["system", "friend_request", "like", "comment", "mention", "reply"],
       default: "system",
+    },
+    message: {
+      type: String,
+      required: true,
+    },
+    post: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Post",
     },
     read: {
       type: Boolean,
       default: false,
     },
     relatedId: {
-      type: mongoose.Schema.Types.ObjectId, // ID of the post, user, or comment related to the notification
+      type: mongoose.Schema.Types.ObjectId, // Deprecated in favor of sender/post but kept for backward compatibility
     },
   },
   { timestamps: true }

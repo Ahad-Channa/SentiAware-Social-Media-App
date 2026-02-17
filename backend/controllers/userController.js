@@ -30,12 +30,22 @@ export const getSuggestedUsers = async (req, res) => {
 
     const currentUser = await User.findById(req.user._id);
 
-    // Find users who are NOT the current user AND NOT in the friends list
-    const suggestedUsers = await User.find({
-      _id: { $ne: req.user._id, $nin: currentUser.friends }
-    })
-      .select("name username profilePic")
-      .limit(5); // Limit to 5 suggestions
+    // Use aggregation to get random users efficiently
+    const suggestedUsers = await User.aggregate([
+      {
+        $match: {
+          _id: { $ne: req.user._id, $nin: currentUser.friends },
+        },
+      },
+      { $sample: { size: 15 } }, // Get 15 random users
+      {
+        $project: {
+          name: 1,
+          username: 1,
+          profilePic: 1,
+        },
+      },
+    ]);
 
     res.json(suggestedUsers);
   } catch (error) {

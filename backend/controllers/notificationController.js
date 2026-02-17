@@ -7,7 +7,9 @@ export const getUserNotifications = async (req, res) => {
     try {
         const notifications = await Notification.find({ recipient: req.user._id })
             .sort({ createdAt: -1 })
-            .populate({ path: "relatedId", model: "User", select: "name profilePic" });
+            .populate("sender", "name profilePic")
+            .populate("post", "content image")
+            .populate({ path: "relatedId", model: "User", select: "name profilePic" }); // Keep for backward compatibility
 
         res.json(notifications);
     } catch (error) {
