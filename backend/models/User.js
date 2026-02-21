@@ -9,6 +9,7 @@ const userSchema = new mongoose.Schema(
 
     bio: { type: String, default: "" },
     location: { type: String, default: "" },
+    gender: { type: String, enum: ["boy", "girl", "other"], required: true },
 
     // ⭐ Added for Friend System
     friends: [

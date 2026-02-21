@@ -109,7 +109,7 @@ export const hideComment = async (postId, commentId) => {
 };
 
 export const sendFriendRequest = async (id) => {
-  const res = await api.post(`/api/users/friend-request/${id}`);
+  const res = await api.post(`/api/friends/send/${id}`);
   return res.data;
 };
 

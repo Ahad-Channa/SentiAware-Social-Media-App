@@ -34,7 +34,10 @@ export const getSuggestedUsers = async (req, res) => {
     const suggestedUsers = await User.aggregate([
       {
         $match: {
-          _id: { $ne: req.user._id, $nin: currentUser.friends },
+          _id: {
+            $ne: req.user._id,
+            $nin: [...currentUser.friends, ...currentUser.friendRequestsSent, ...currentUser.friendRequestsReceived]
+          },
         },
       },
       { $sample: { size: 15 } }, // Get 15 random users

@@ -34,11 +34,32 @@ const pendingRegistrations = new Map();
 // STEP 1: INIT REGISTER (Send OTP only)
 export const registerInit = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, gender } = req.body;
 
+    // 👇 This checks if the email is already registered to a user
     const userExists = await User.findOne({ email });
     if (userExists)
       return res.status(400).json({ message: "User already exists" });
+
+    // Validate Password Strength
+    if (
+      password.length < 8 ||
+      !/[A-Z]/.test(password) ||
+      !/[0-9]/.test(password) ||
+      !/[@$!%*?&#]/.test(password)
+    ) {
+      return res.status(400).json({
+        message:
+          "Password must be at least 8 characters long, contain an uppercase letter, a number, and a special character.",
+      });
+    }
+
+    // 👇 PREVENT MULTIPLE OTPS: Check if an unexpired OTP already exists for this email
+    const existingPending = pendingRegistrations.get(email);
+    if (existingPending && existingPending.expires > Date.now()) {
+      const waitTimeRemaining = Math.ceil((existingPending.expires - Date.now()) / 1000 / 60);
+      return res.status(400).json({ message: `An OTP was already sent. Please wait ${waitTimeRemaining} minutes before requesting a new one.` });
+    }
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
@@ -46,6 +67,7 @@ export const registerInit = async (req, res) => {
       name,
       email,
       password,
+      gender,
       otp,
       expires: Date.now() + 10 * 60 * 1000,
     });
@@ -82,7 +104,7 @@ export const registerVerify = async (req, res) => {
       return res.status(400).json({ message: "Invalid OTP" });
 
     // Use stored data, NOT req.body
-    const { name, password } = record;
+    const { name, password, gender } = record;
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -96,6 +118,7 @@ export const registerVerify = async (req, res) => {
       name,
       email,
       password: hashedPassword,
+      gender,
       profilePic,
     });
 
@@ -127,11 +150,24 @@ export const registerVerify = async (req, res) => {
 // @desc Register user
 export const registerUser = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, gender } = req.body;
 
     const userExists = await User.findOne({ email });
     if (userExists)
       return res.status(400).json({ message: "User already exists" });
+
+    // Validate Password Strength
+    if (
+      password.length < 8 ||
+      !/[A-Z]/.test(password) ||
+      !/[0-9]/.test(password) ||
+      !/[@$!%*?&#]/.test(password)
+    ) {
+      return res.status(400).json({
+        message:
+          "Password must be at least 8 characters long, contain an uppercase letter, a number, and a special character.",
+      });
+    }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -145,6 +181,7 @@ export const registerUser = async (req, res) => {
       name,
       email,
       password: hashedPassword,
+      gender,
       profilePic,
     });
 
