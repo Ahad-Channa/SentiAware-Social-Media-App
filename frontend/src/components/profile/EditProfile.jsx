@@ -84,21 +84,21 @@ const EditProfile = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-12 pb-12">
+    <div className="min-h-screen bg-[#1A1A24] pt-12 pb-12">
       <div className="max-w-xl mx-auto px-4 sm:px-6">
 
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-black text-gray-900 tracking-tight mb-2" style={{ fontFamily: "'Outfit', sans-serif" }}>Edit Profile</h1>
-          <p className="text-gray-500">Update your personal details and profile picture.</p>
+          <h1 className="text-2xl font-black text-white tracking-tight mb-2" style={{ fontFamily: "'Outfit', sans-serif" }}>Edit Profile</h1>
+          <p className="text-gray-400">Update your personal details and profile picture.</p>
         </div>
 
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="bg-[#232330] rounded-2xl border border-[#2D2D3B] shadow-lg overflow-hidden">
           <form onSubmit={handleSubmit} className="p-8 space-y-6">
 
             {/* Avatar Upload */}
             <div className="flex flex-col items-center">
               <div className="relative group cursor-pointer">
-                <div className="h-28 w-28 rounded-full border-4 border-white shadow-sm bg-gray-100 overflow-hidden ring-1 ring-gray-100">
+                <div className="h-28 w-28 rounded-full border-4 border-[#1A1A24] shadow-sm bg-[#2A2A3A] overflow-hidden ring-1 ring-[#2D2D3B]">
                   {avatarPreview ? (
                     <img
                       src={avatarPreview}
@@ -121,54 +121,54 @@ const EditProfile = () => {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-1.5">Full Name</label>
+                <label className="block text-sm font-semibold text-white mb-1.5">Full Name</label>
                 <input
                   type="text"
                   name="fullName"
                   value={formData.fullName}
                   onChange={handleChange}
-                  className="block w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 focus:bg-white focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all outline-none"
+                  className="block w-full px-4 py-2.5 bg-[#1A1A24] border border-[#2D2D3B] rounded-lg text-white focus:bg-[#1A1A24] focus:ring-2 focus:ring-[#8E54E9]/50 focus:border-[#8E54E9] transition-all outline-none"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-1.5">Bio</label>
+                <label className="block text-sm font-semibold text-white mb-1.5">Bio</label>
                 <textarea
                   name="bio"
                   value={formData.bio}
                   onChange={handleChange}
                   rows={3}
-                  className="block w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 focus:bg-white focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all outline-none resize-none"
+                  className="block w-full px-4 py-2.5 bg-[#1A1A24] border border-[#2D2D3B] rounded-lg text-white focus:bg-[#1A1A24] focus:ring-2 focus:ring-[#8E54E9]/50 focus:border-[#8E54E9] transition-all outline-none resize-none"
                   placeholder="Tell us about yourself..."
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-1.5">Location</label>
+                <label className="block text-sm font-semibold text-white mb-1.5">Location</label>
                 <input
                   type="text"
                   name="location"
                   value={formData.location}
                   onChange={handleChange}
-                  className="block w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 focus:bg-white focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all outline-none"
+                  className="block w-full px-4 py-2.5 bg-[#1A1A24] border border-[#2D2D3B] rounded-lg text-white focus:bg-[#1A1A24] focus:ring-2 focus:ring-[#8E54E9]/50 focus:border-[#8E54E9] transition-all outline-none"
                   placeholder="City, Country"
                 />
               </div>
             </div>
 
-            <div className="pt-4 border-t border-gray-100 flex items-center gap-3">
+            <div className="pt-4 border-t border-[#2D2D3B] flex items-center gap-3">
               <button
                 type="button"
                 onClick={() => navigate('/profile')}
-                className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-gray-700 font-semibold hover:bg-gray-50 transition-colors"
+                className="flex-1 px-4 py-2.5 border border-[#2D2D3B] rounded-xl text-gray-400 font-semibold hover:bg-[#2A2A3A] hover:text-white transition-colors"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={isLoading}
-                className={`flex-1 px-4 py-2.5 bg-gray-900 text-white rounded-xl font-semibold hover:bg-gray-800 transition-colors shadow-sm ${isLoading ? 'opacity-75 cursor-not-allowed' : ''
+                className={`flex-1 px-4 py-2.5 bg-[#8E54E9] text-white rounded-xl font-semibold hover:bg-[#7A42E4] transition-colors shadow-md shadow-[#8E54E9]/20 ${isLoading ? 'opacity-75 cursor-not-allowed' : ''
                   }`}
               >
                 {isLoading ? 'Saving...' : 'Save Changes'}

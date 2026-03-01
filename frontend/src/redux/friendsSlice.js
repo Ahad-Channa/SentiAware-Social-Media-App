@@ -83,17 +83,40 @@ const friendsSlice = createSlice({
       })
 
       // send
+      .addCase(sendFriendRequest.pending, (s, action) => {
+        s.statusByUser[action.meta.arg] = "request_sent";
+      })
       .addCase(sendFriendRequest.fulfilled, (s, action) => {
         s.statusByUser[action.payload.targetUserId] = "request_sent";
+      })
+
+      // cancel
+      .addCase(cancelFriendRequest.pending, (s, action) => {
+        s.statusByUser[action.meta.arg] = "not_friends";
       })
       .addCase(cancelFriendRequest.fulfilled, (s, action) => {
         s.statusByUser[action.payload.targetUserId] = "not_friends";
       })
+
+      // accept
+      .addCase(acceptFriendRequest.pending, (s, action) => {
+        s.statusByUser[action.meta.arg] = "friends";
+      })
       .addCase(acceptFriendRequest.fulfilled, (s, action) => {
         s.statusByUser[action.payload.targetUserId] = "friends";
       })
+
+      // reject
+      .addCase(rejectFriendRequest.pending, (s, action) => {
+        s.statusByUser[action.meta.arg] = "not_friends";
+      })
       .addCase(rejectFriendRequest.fulfilled, (s, action) => {
         s.statusByUser[action.payload.targetUserId] = "not_friends";
+      })
+
+      // unfriend
+      .addCase(unfriendUser.pending, (s, action) => {
+        s.statusByUser[action.meta.arg] = "not_friends";
       })
       .addCase(unfriendUser.fulfilled, (s, action) => {
         s.statusByUser[action.payload.targetUserId] = "not_friends";

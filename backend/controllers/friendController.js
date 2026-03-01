@@ -41,10 +41,6 @@ export const sendFriendRequest = async (req, res) => {
     await myData.save();
     await otherData.save();
 
-
-    await myData.save();
-    await otherData.save();
-
     // Create Notification for recipient
     await Notification.create({
       recipient: other, // The person receiving the request
@@ -81,6 +77,13 @@ export const cancelFriendRequest = async (req, res) => {
     await myData.save();
     await otherData.save();
 
+    // Remove pending notification
+    await Notification.deleteMany({
+      recipient: other,
+      sender: me,
+      type: "friend_request"
+    });
+
     res.json({ message: "Friend request cancelled" });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -111,9 +114,6 @@ export const acceptFriendRequest = async (req, res) => {
     // add to friends list
     myData.friends.push(other);
     otherData.friends.push(me);
-
-    await myData.save();
-    await otherData.save();
 
     await myData.save();
     await otherData.save();
@@ -154,6 +154,13 @@ export const rejectFriendRequest = async (req, res) => {
 
     await myData.save();
     await otherData.save();
+
+    // Remove pending notification
+    await Notification.deleteMany({
+      recipient: me,
+      sender: other,
+      type: "friend_request"
+    });
 
     res.json({ message: "Friend request rejected" });
   } catch (err) {

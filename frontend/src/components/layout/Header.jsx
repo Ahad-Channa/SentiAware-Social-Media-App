@@ -55,12 +55,12 @@ const Header = () => {
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-white border-b border-gray-200">
+    <header className="sticky top-0 z-50 bg-[#1A1A24] border-b border-[#2D2D3B] shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
 
           <div className="flex-shrink-0 flex items-center">
-            <Link to="/" className="text-3xl font-black text-gray-900 tracking-tighter hover:opacity-80 transition-opacity" style={{ fontFamily: "'Outfit', sans-serif" }}>
+            <Link to="/" className="text-3xl font-black text-white tracking-tighter hover:opacity-80 transition-opacity" style={{ fontFamily: "'Outfit', sans-serif" }}>
               SentiAware.
             </Link>
           </div>
@@ -80,8 +80,8 @@ const Header = () => {
               to="/friends"
               className={({ isActive }) =>
                 `p-2.5 rounded-lg transition-all duration-200 group relative ${isActive
-                  ? "text-gray-900 bg-gray-100"
-                  : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
+                  ? "text-white bg-[#232330]"
+                  : "text-gray-400 hover:bg-[#232330] hover:text-white"
                 }`
               }
               title="Friends"
@@ -94,8 +94,8 @@ const Header = () => {
               to="/feed"
               className={({ isActive }) =>
                 `p-2.5 rounded-lg transition-all duration-200 group relative ${isActive
-                  ? "text-gray-900 bg-gray-100"
-                  : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
+                  ? "text-white bg-slate-800"
+                  : "text-slate-400 hover:bg-slate-800 hover:text-white"
                 }`
               }
               title="Feed"
@@ -106,7 +106,7 @@ const Header = () => {
             {/* Notification Bell */}
             <div className="relative" ref={notificationRef}>
               <button
-                className={`relative p-2.5 text-gray-500 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors focus:outline-none ${showNotifications ? 'bg-gray-50 text-gray-900' : ''}`}
+                className={`relative p-2.5 text-gray-400 hover:text-white hover:bg-[#232330] rounded-lg transition-colors focus:outline-none ${showNotifications ? 'bg-[#232330] text-white' : ''}`}
                 onClick={() => setShowNotifications(!showNotifications)}
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
@@ -131,11 +131,11 @@ const Header = () => {
                 onClick={() => setShowUserMenu(!showUserMenu)}
                 className="flex items-center focus:outline-none"
               >
-                <div className="h-8 w-8 rounded-full overflow-hidden border border-gray-200 hover:border-gray-300 transition-colors">
+                <div className="h-8 w-8 rounded-full overflow-hidden border border-[#2D2D3B] hover:border-gray-500 transition-colors">
                   {user?.profilePic ? (
                     <img src={user.profilePic} alt="User" className="h-full w-full object-cover" />
                   ) : (
-                    <div className="h-full w-full flex items-center justify-center bg-gray-100 text-gray-600 font-bold text-xs">
+                    <div className="h-full w-full flex items-center justify-center bg-[#232330] text-gray-400 font-bold text-xs">
                       {user?.name?.[0]?.toUpperCase()}
                     </div>
                   )}
@@ -143,33 +143,33 @@ const Header = () => {
               </button>
 
               {showUserMenu && (
-                <div className="absolute right-0 mt-3 w-56 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden z-50 animate-in fade-in zoom-in duration-150 origin-top-right">
-                  <div className="px-4 py-3 border-b border-gray-50 bg-gray-50/50">
-                    <p className="text-sm font-semibold text-gray-900 truncate">{user?.name}</p>
-                    <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+                <div className="absolute right-0 mt-3 w-56 bg-[#232330] rounded-xl shadow-2xl border border-[#2D2D3B] overflow-hidden z-50 animate-in fade-in zoom-in duration-150 origin-top-right">
+                  <div className="px-4 py-3 border-b border-[#2D2D3B] bg-[#1A1A24]">
+                    <p className="text-sm font-semibold text-white truncate">{user?.name}</p>
+                    <p className="text-xs text-gray-400 truncate">{user?.email}</p>
                   </div>
 
                   <div className="py-1">
                     <Link
                       to="/profile"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      className="block px-4 py-2 text-sm text-gray-300 hover:bg-[#2A2A3A] transition-colors"
                       onClick={() => setShowUserMenu(false)}
                     >
                       My Profile
                     </Link>
                     <Link
                       to="/settings"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      className="block px-4 py-2 text-sm text-gray-300 hover:bg-[#2A2A3A] transition-colors"
                       onClick={() => setShowUserMenu(false)}
                     >
                       Settings
                     </Link>
                   </div>
 
-                  <div className="border-t border-gray-50 py-1">
+                  <div className="border-t border-[#2D2D3B] py-1">
                     <button
                       onClick={handleLogout}
-                      className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                      className="block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
                     >
                       Log Out
                     </button>

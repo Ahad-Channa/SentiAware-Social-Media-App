@@ -153,6 +153,14 @@ export const likePost = async (req, res) => {
             post.likes = post.likes.filter(
                 (id) => id.toString() !== req.user._id.toString()
             );
+
+            // Remove corresponding like notification
+            await Notification.deleteMany({
+                recipient: post.author,
+                sender: req.user._id,
+                type: "like",
+                post: post._id
+            });
         } else {
             // Like
             post.likes.push(req.user._id);
@@ -407,6 +415,17 @@ export const deleteComment = async (req, res) => {
         deleteCommentRecursive(post.comments, req.params.commentId);
 
         await post.save();
+
+        // Attempt to remove corresponding comment notification 
+        // Only if it's the main comment and the author wasn't the post author
+        if (comment.user.toString() !== post.author.toString()) {
+            await Notification.deleteMany({
+                recipient: post.author,
+                sender: comment.user,
+                type: "comment",
+                post: post._id
+            });
+        }
 
         // Return updated comments needed for UI update
         const updatedPost = await Post.findById(req.params.id)

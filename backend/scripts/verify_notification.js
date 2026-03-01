@@ -1,11 +1,12 @@
 // Using global fetch for Node 18+
 
-const BASE_URL = "http://localhost:5000/api";
+const BASE_URL = "http://127.0.0.1:5000/api";
 
 async function verify() {
     const email = `testuser_${Date.now()}@example.com`;
-    const password = "password123";
+    const password = "Password@123";
     const name = "Test User";
+    const gender = "boy";
 
     console.log(`1. Registering user: ${email}...`);
 
@@ -16,7 +17,7 @@ async function verify() {
         const registerResponse = await fetch(`${BASE_URL}/auth/register`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name, email, password }),
+            body: JSON.stringify({ name, email, password, gender }),
         });
 
         const userData = await registerResponse.json();

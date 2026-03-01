@@ -25,7 +25,7 @@ const NotificationItem = ({ notification, onMarkRead }) => {
 
     return (
         <div
-            className={`p-3 border-b border-gray-100 hover:bg-gray-50 flex items-start space-x-3 transition-colors cursor-pointer ${!notification.read ? 'bg-purple-50' : ''}`}
+            className={`p-3 border-b border-[#2D2D3B] hover:bg-[#2A2A3A] flex items-start space-x-3 transition-colors cursor-pointer ${!notification.read ? 'bg-[#1e1e2d]' : ''}`}
             onClick={handleClick}
         >
             <div className="flex-shrink-0">
@@ -33,11 +33,11 @@ const NotificationItem = ({ notification, onMarkRead }) => {
                     <img
                         src={sender.profilePic}
                         alt={sender.name}
-                        className="h-10 w-10 rounded-full object-cover border border-gray-200"
+                        className="h-10 w-10 rounded-full object-cover ring-1 ring-[#2D2D3B]"
                     />
                 ) : (
-                    <div className={`h-10 w-10 rounded-full flex items-center justify-center ${!notification.read ? 'bg-purple-200' : 'bg-gray-200'}`}>
-                        <span className="text-xs font-bold text-gray-600">
+                    <div className={`h-10 w-10 rounded-full flex items-center justify-center ${!notification.read ? 'bg-[#8E54E9]/20 text-[#8E54E9]' : 'bg-[#2A2A3A] text-gray-400'} ring-1 ring-[#2D2D3B]`}>
+                        <span className="text-xs font-bold">
                             {sender?.name?.[0] || "S"}
                         </span>
                     </div>
@@ -45,7 +45,7 @@ const NotificationItem = ({ notification, onMarkRead }) => {
             </div>
 
             <div className="flex-1">
-                <p className={`text-sm ${!notification.read ? 'text-gray-900 font-medium' : 'text-gray-600'}`}>
+                <p className={`text-sm ${!notification.read ? 'text-white font-medium' : 'text-gray-400'}`}>
                     {notification.message}
                 </p>
                 <div className="flex items-center gap-2 mt-1">
@@ -61,7 +61,7 @@ const NotificationItem = ({ notification, onMarkRead }) => {
             </div>
             {/* Read Indicator Dot */}
             {!notification.read && (
-                <div className="mt-2 h-2 w-2 rounded-full bg-purple-500 flex-shrink-0"></div>
+                <div className="mt-2 h-2 w-2 rounded-full bg-[#8E54E9] flex-shrink-0 shadow-[0_0_8px_rgba(142,84,233,0.8)]"></div>
             )}
         </div>
     );

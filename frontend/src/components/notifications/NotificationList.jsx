@@ -24,9 +24,9 @@ const NotificationList = ({ onClose }) => {
     }
 
     return (
-        <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden z-50">
-            <div className="p-3 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
-                <h3 className="font-semibold text-gray-700">Notifications</h3>
+        <div className="absolute right-0 mt-2 w-80 bg-[#232330] rounded-xl shadow-2xl border border-[#2D2D3B] overflow-hidden z-50 animate-in fade-in zoom-in duration-150 origin-top-right">
+            <div className="p-3 border-b border-[#2D2D3B] bg-[#1A1A24] flex justify-between items-center">
+                <h3 className="font-semibold text-white">Notifications</h3>
                 {onClose && (
                     <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
                         &times;
@@ -34,9 +34,9 @@ const NotificationList = ({ onClose }) => {
                 )}
             </div>
 
-            <div className="max-h-96 overflow-y-auto">
+            <div className="max-h-96 overflow-y-auto custom-scrollbar">
                 {items.length === 0 ? (
-                    <div className="p-6 text-center text-gray-500">
+                    <div className="p-6 text-center text-gray-400">
                         No notifications yet
                     </div>
                 ) : (

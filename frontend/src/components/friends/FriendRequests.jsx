@@ -18,37 +18,43 @@ const FriendRequests = () => {
   }, [dispatch]);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-[#1A1A24] p-6 text-white">
       <h1 className="text-3xl font-bold mb-6">Friend Requests</h1>
 
       {requests.length === 0 ? (
-        <p className="text-gray-600">No pending requests.</p>
+        <p className="text-gray-400">No pending requests.</p>
       ) : (
         <div className="space-y-3">
           {requests.map((user) => (
             <div
               key={user._id}
-              className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm"
+              className="flex justify-between items-center bg-[#232330] p-4 rounded-xl border border-[#2D2D3B] shadow-sm"
             >
-              <Link to={`/profile/${user._id}`} className="flex items-center space-x-3">
+              <Link to={`/profile/${user._id}`} className="flex items-center space-x-3 group">
                 <img
                   src={user.profilePic}
-                  className="h-12 w-12 rounded-full object-cover"
+                  className="h-12 w-12 rounded-full object-cover ring-2 ring-transparent group-hover:ring-[#8E54E9] transition-all"
                   alt=""
                 />
-                <span className="text-lg font-semibold">{user.name}</span>
+                <span className="text-lg font-semibold text-white group-hover:text-[#8E54E9] transition-colors">{user.name}</span>
               </Link>
 
-              <div className="flex gap-2">
+              <div className="flex gap-2 text-sm font-semibold">
                 <button
-                  onClick={() => dispatch(acceptFriendRequest(user._id))}
-                  className="px-4 py-2 bg-green-500 text-white rounded-lg"
+                  onClick={async () => {
+                    await dispatch(acceptFriendRequest(user._id)).unwrap();
+                    setRequests(prev => prev.filter(req => req._id !== user._id));
+                  }}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-md shadow-green-900/20"
                 >
                   Accept
                 </button>
                 <button
-                  onClick={() => dispatch(rejectFriendRequest(user._id))}
-                  className="px-4 py-2 bg-gray-300 rounded-lg"
+                  onClick={async () => {
+                    await dispatch(rejectFriendRequest(user._id)).unwrap();
+                    setRequests(prev => prev.filter(req => req._id !== user._id));
+                  }}
+                  className="px-4 py-2 bg-[#2A2A3A] text-gray-300 rounded-lg hover:bg-[#323246] hover:text-white transition-colors border border-[#2D2D3B]"
                 >
                   Reject
                 </button>

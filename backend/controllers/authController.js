@@ -122,12 +122,16 @@ export const registerVerify = async (req, res) => {
       profilePic,
     });
 
-    // Create Welcome Notification
-    await Notification.create({
-      recipient: user._id,
-      message: "Welcome to SentiAware! Complete your profile to get started.",
-      type: "system",
-    });
+    // Create Welcome Notification fail-safe
+    try {
+      await Notification.create({
+        recipient: user._id,
+        message: "Welcome to SentiAware! Complete your profile to get started.",
+        type: "system",
+      });
+    } catch (err) {
+      console.error("Welcome notification error:", err.message);
+    }
 
     pendingRegistrations.delete(email);
 
@@ -185,12 +189,16 @@ export const registerUser = async (req, res) => {
       profilePic,
     });
 
-    // Create Welcome Notification
-    await Notification.create({
-      recipient: user._id,
-      message: "Welcome to SentiAware! Complete your profile to get started.",
-      type: "system",
-    });
+    // Create Welcome Notification fail-safe
+    try {
+      await Notification.create({
+        recipient: user._id,
+        message: "Welcome to SentiAware! Complete your profile to get started.",
+        type: "system",
+      });
+    } catch (err) {
+      console.error("Welcome notification error:", err.message);
+    }
 
     res.status(201).json({
       _id: user._id,

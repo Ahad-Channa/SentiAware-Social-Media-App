@@ -38,8 +38,8 @@ const SinglePost = () => {
 
     if (loading) {
         return (
-            <div className="flex justify-center items-center min-h-[calc(100vh-64px)]">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gray-900"></div>
+            <div className="flex justify-center items-center min-h-[calc(100vh-64px)] bg-[#1A1A24]">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#8E54E9]"></div>
             </div>
         );
     }
@@ -47,12 +47,12 @@ const SinglePost = () => {
     if (error) {
         return (
             <div className="max-w-xl mx-auto mt-8 px-4 text-center">
-                <div className="bg-red-50 text-red-600 p-4 rounded-lg border border-red-100">
+                <div className="bg-[#232330] text-red-400 p-4 rounded-lg border border-red-500/20 shadow-2xl">
                     {error}
                 </div>
                 <button
                     onClick={() => navigate('/feed')}
-                    className="mt-4 text-gray-600 hover:text-gray-900 underline"
+                    className="mt-4 text-gray-400 hover:text-white underline transition-colors"
                 >
                     Back to Feed
                 </button>
@@ -61,11 +61,11 @@ const SinglePost = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+        <div className="min-h-screen bg-[#1A1A24] py-8 px-4 sm:px-6 lg:px-8">
             <div className="max-w-2xl mx-auto">
                 <button
                     onClick={() => navigate(-1)}
-                    className="mb-4 flex items-center text-gray-500 hover:text-gray-900 transition-colors"
+                    className="mb-4 flex items-center text-gray-400 hover:text-white transition-colors"
                 >
                     <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
