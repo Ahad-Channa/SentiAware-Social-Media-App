@@ -59,8 +59,9 @@ const EditProfile = () => {
       if (profilePicFile) form.append('profilePic', profilePicFile);
 
       // Ensure your backend route matches
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
       const res = await axios.put(
-        'http://localhost:5000/api/auth/update', // backend update route
+        `${API_URL}/api/auth/update`, // backend update route
         form,
         {
           headers: {

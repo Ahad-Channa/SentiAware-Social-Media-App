@@ -65,7 +65,8 @@ const Signup = () => {
     onSubmit: async (values) => {
       try {
         setLoading(true);
-        await axios.post("http://localhost:5000/api/auth/register-init", {
+        const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+        await axios.post(`${API_URL}/api/auth/register-init`, {
           name: values.name,
           email: values.email,
           password: values.password,
@@ -128,8 +129,9 @@ const Signup = () => {
 
     try {
       setLoading(true);
+      const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
       const res = await axios.post(
-        "http://localhost:5000/api/auth/register-verify",
+        `${API_URL}/api/auth/register-verify`,
         form,
         { headers: { "Content-Type": "multipart/form-data" } }
       );
@@ -147,7 +149,8 @@ const Signup = () => {
   const resendOtp = async () => {
     try {
       setLoading(true);
-      await axios.post("http://localhost:5000/api/auth/register-init", {
+      const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      await axios.post(`${API_URL}/api/auth/register-init`, {
         name: formik.values.name,
         email: formik.values.email,
         password: formik.values.password,
