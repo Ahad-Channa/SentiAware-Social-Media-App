@@ -7,6 +7,9 @@ const ChatWindow = ({ selectedChat, setSelectedChat, currentUser, onMessageSent 
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState("");
     const [loading, setLoading] = useState(false);
+    const [editingMessageId, setEditingMessageId] = useState(null);
+    const [editMessageText, setEditMessageText] = useState("");
+    const [openDropdownId, setOpenDropdownId] = useState(null);
     const messagesEndRef = useRef(null);
     const { socket } = useSocketContext();
 
@@ -28,16 +31,32 @@ const ChatWindow = ({ selectedChat, setSelectedChat, currentUser, onMessageSent 
     useEffect(() => {
         if (!socket) return;
 
-        socket.on("newMessage", (message) => {
+        const handleNewMessage = (message) => {
             if (
                 message.sender._id === selectedChat._id ||
                 message.sender === selectedChat._id
             ) {
                 setMessages((prev) => [...prev, message]);
             }
-        });
+        };
 
-        return () => socket.off("newMessage");
+        const handleMessageEdited = (editedMessage) => {
+            setMessages((prev) => prev.map(m => m._id === editedMessage._id ? editedMessage : m));
+        };
+
+        const handleMessageDeleted = (deletedMessageId) => {
+            setMessages((prev) => prev.filter(m => m._id !== deletedMessageId));
+        };
+
+        socket.on("newMessage", handleNewMessage);
+        socket.on("messageEdited", handleMessageEdited);
+        socket.on("messageDeleted", handleMessageDeleted);
+
+        return () => {
+            socket.off("newMessage", handleNewMessage);
+            socket.off("messageEdited", handleMessageEdited);
+            socket.off("messageDeleted", handleMessageDeleted);
+        };
     }, [socket, selectedChat]);
 
     useEffect(() => {
@@ -60,6 +79,40 @@ const ChatWindow = ({ selectedChat, setSelectedChat, currentUser, onMessageSent 
         } catch (error) {
             console.error("Failed to send message", error);
         }
+    };
+
+    const handleDeleteMessage = async (messageId) => {
+        try {
+            await api.delete(`/api/messages/delete/${messageId}`);
+            setMessages((prev) => prev.filter(m => m._id !== messageId));
+            setOpenDropdownId(null);
+        } catch (error) {
+            console.error("Failed to delete message", error);
+        }
+    };
+
+    const startEditing = (message) => {
+        setEditingMessageId(message._id);
+        setEditMessageText(message.message);
+        setOpenDropdownId(null);
+    };
+
+    const handleSaveEdit = async (messageId) => {
+        if (!editMessageText.trim()) return;
+        try {
+            const res = await api.put(`/api/messages/edit/${messageId}`, {
+                message: editMessageText,
+            });
+            setMessages((prev) => prev.map(m => m._id === messageId ? res.data : m));
+            setEditingMessageId(null);
+        } catch (error) {
+            console.error("Failed to edit message", error);
+        }
+    };
+
+    const cancelEditing = () => {
+        setEditingMessageId(null);
+        setEditMessageText("");
     };
 
     return (
@@ -107,22 +160,78 @@ const ChatWindow = ({ selectedChat, setSelectedChat, currentUser, onMessageSent 
                         // Some messages from socket might have sender as object instead of string ID
                         const senderId = typeof m.sender === 'object' ? m.sender._id : m.sender;
                         const fromMe = senderId === currentUser._id;
+                        const isEditing = editingMessageId === m._id;
 
                         return (
                             <div
                                 key={m._id || index}
-                                className={`flex ${fromMe ? "justify-end" : "justify-start"}`}
+                                className={`flex ${fromMe ? "justify-end" : "justify-start"} group mb-2`}
                             >
+                                {fromMe && !isEditing && (
+                                    <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center mr-2 relative">
+                                        <button 
+                                            onClick={() => setOpenDropdownId(openDropdownId === m._id ? null : m._id)}
+                                            className="p-1.5 text-gray-400 hover:text-white rounded-full hover:bg-[#2D2D3B] flex items-center justify-center"
+                                        >
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                                            </svg>
+                                        </button>
+                                        
+                                        {openDropdownId === m._id && (
+                                            <div className="absolute right-0 top-full z-10 w-28 bg-[#232330] border border-[#2D2D3B] rounded-lg shadow-xl overflow-hidden overflow-visible">
+                                                <button 
+                                                    onClick={() => startEditing(m)}
+                                                    className="w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-[#2D2D3B] hover:text-white transition-colors"
+                                                >
+                                                    Edit
+                                                </button>
+                                                <button 
+                                                    onClick={() => handleDeleteMessage(m._id)}
+                                                    className="w-full text-left px-4 py-2.5 text-sm text-red-400 hover:bg-[#2D2D3B] hover:text-red-300 transition-colors"
+                                                >
+                                                    Delete
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
                                 <div
                                     className={`max-w-[75%] rounded-2xl px-4 py-2 text-sm ${fromMe
                                             ? "bg-[#8E54E9] text-white rounded-tr-none"
                                             : "bg-[#2D2D3B] text-gray-200 rounded-tl-none"
                                         }`}
                                 >
-                                    <p>{m.message}</p>
-                                    <p className={`text-[10px] mt-1 text-right ${fromMe ? "text-purple-200" : "text-gray-400"}`}>
-                                        {m.createdAt ? format(new Date(m.createdAt), "p") : format(new Date(), "p")}
-                                    </p>
+                                    {isEditing ? (
+                                        <div className="flex flex-col gap-2">
+                                            <input 
+                                                type="text"
+                                                autoFocus
+                                                value={editMessageText}
+                                                onChange={(e) => setEditMessageText(e.target.value)}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') handleSaveEdit(m._id);
+                                                    if (e.key === 'Escape') cancelEditing();
+                                                }}
+                                                className="bg-[#1A1A24] text-white border border-[#2D2D3B] rounded px-2 py-1 focus:outline-none focus:border-[#8E54E9] text-sm w-full"
+                                            />
+                                            <div className="flex justify-end gap-2 text-xs">
+                                                <button onClick={cancelEditing} className="text-gray-300 hover:text-white">Cancel</button>
+                                                <button onClick={() => handleSaveEdit(m._id)} className="font-semibold text-white">Save</button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <p>{m.message}</p>
+                                            <div className={`flex items-center justify-end gap-1 mt-1 ${fromMe ? "text-purple-200" : "text-gray-400"}`}>
+                                                {m.isEdited && <span className="text-[9px] italic">(edited)</span>}
+                                                <p className="text-[10px]">
+                                                    {m.createdAt ? format(new Date(m.createdAt), "p") : format(new Date(), "p")}
+                                                </p>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         );

@@ -1,8 +1,10 @@
-import React from "react";
+import React, { useState } from "react";
 import { useSocketContext } from "../../context/SocketContext";
 
-const ConversationList = ({ friends, selectedChat, setSelectedChat }) => {
+const ConversationList = ({ friends, selectedChat, setSelectedChat, onDeleteChat }) => {
     const { onlineUsers } = useSocketContext();
+    const [openDropdownId, setOpenDropdownId] = useState(null);
+    const [chatToDelete, setChatToDelete] = useState(null);
 
     return (
         <div className="flex flex-col h-full">
@@ -57,11 +59,69 @@ const ConversationList = ({ friends, selectedChat, setSelectedChat }) => {
                                         </span>
                                     </div>
                                 )}
+
+                                {/* Delete Chat Options */}
+                                <div className="relative ml-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                                    <button
+                                        onClick={() => setOpenDropdownId(openDropdownId === friend._id ? null : friend._id)}
+                                        className="p-1.5 text-gray-500 hover:text-white rounded-full hover:bg-[#3D3D4E] transition-colors"
+                                    >
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                                        </svg>
+                                    </button>
+
+                                    {openDropdownId === friend._id && (
+                                        <div className="absolute right-0 top-full mt-1 z-20 w-32 bg-[#232330] border border-[#2D2D3B] rounded-lg shadow-xl overflow-hidden">
+                                            <button
+                                                onClick={() => {
+                                                    setOpenDropdownId(null);
+                                                    setChatToDelete(friend);
+                                                }}
+                                                className="w-full text-left px-4 py-2.5 text-sm text-red-400 hover:bg-[#2D2D3B] hover:text-red-300 transition-colors"
+                                            >
+                                                Delete Chat
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         );
                     })
                 )}
             </div>
+            {/* Delete Chat Modal Overlay */}
+            {chatToDelete && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm p-4">
+                    <div className="bg-[#232330] border border-[#2D2D3B] p-6 rounded-2xl shadow-2xl max-w-sm w-full mx-auto" onClick={(e) => e.stopPropagation()}>
+                        <h3 className="text-xl font-bold text-white mb-2">Clear Chat History</h3>
+                        <p className="text-gray-300 mb-6 text-sm">
+                            Are you sure you want to delete your conversation with <span className="font-semibold text-white">{chatToDelete.name}</span>? This action cannot be undone.
+                        </p>
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setChatToDelete(null);
+                                }}
+                                className="px-4 py-2 rounded-xl text-gray-300 hover:text-white bg-[#2D2D3B] hover:bg-[#3D3D4E] transition-colors font-medium text-sm"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onDeleteChat(chatToDelete._id);
+                                    setChatToDelete(null);
+                                }}
+                                className="px-4 py-2 rounded-xl text-white bg-red-500 hover:bg-red-600 transition-colors font-medium text-sm shadow-lg shadow-red-500/20"
+                            >
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

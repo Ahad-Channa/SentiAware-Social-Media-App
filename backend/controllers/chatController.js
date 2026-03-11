@@ -67,8 +67,13 @@ export const getMessages = async (req, res) => {
 
         const messages = conversation.messages;
 
+        // Filter messages the user hasn't deleted
+        const visibleMessages = messages.filter(
+            (m) => !m.deletedBy?.includes(senderId)
+        );
+
         // Mark incoming messages as read when fetched
-        const unreadMessageIds = messages
+        const unreadMessageIds = visibleMessages
             .filter(m => !m.isRead && m.sender.toString() === userToChatId)
             .map(m => m._id);
 
@@ -79,7 +84,7 @@ export const getMessages = async (req, res) => {
             );
         }
 
-        res.status(200).json(messages);
+        res.status(200).json(visibleMessages);
     } catch (error) {
         console.log("Error in getMessages controller: ", error.message);
         res.status(500).json({ error: "Internal server error" });
@@ -98,21 +103,38 @@ export const getConversations = async (req, res) => {
             .populate("messages")
             .sort({ updatedAt: -1 });
 
-        // Calculate unread count for each conversation
-        const conversationsWithUnread = conversations.map(convo => {
-            const unreadCount = convo.messages.filter(
-                m => m.receiver && m.receiver.toString() === userId.toString() && !m.isRead
+        // Filter and calculate for each conversation
+        const activeConversations = [];
+
+        conversations.forEach(convo => {
+            const visibleMessages = convo.messages.filter(
+                (m) => !m.deletedBy?.includes(userId)
+            );
+
+            // If user deleted all messages, don't show the conversation
+            if (visibleMessages.length === 0) return;
+
+            const unreadCount = visibleMessages.filter(
+                (m) => m.receiver && m.receiver.toString() === userId.toString() && !m.isRead
             ).length;
             
-            // Convert to object to omit fully populated messages array from response (kept lightweight)
             const convoObj = convo.toObject();
             delete convoObj.messages;
             convoObj.unreadCount = unreadCount;
+            // The true last message for this user is the last visible one
+            convoObj.lastMessage = visibleMessages[visibleMessages.length - 1];
             
-            return convoObj;
+            activeConversations.push(convoObj);
         });
 
-        res.status(200).json(conversationsWithUnread);
+        // Re-sort by actual lastMessage's createdAt in case it changed due to deletions
+        activeConversations.sort((a, b) => {
+            const dateA = a.lastMessage?.createdAt ? new Date(a.lastMessage.createdAt) : new Date(a.updatedAt);
+            const dateB = b.lastMessage?.createdAt ? new Date(b.lastMessage.createdAt) : new Date(b.updatedAt);
+            return dateB - dateA;
+        });
+
+        res.status(200).json(activeConversations);
     } catch (error) {
         console.log("Error in getConversations controller: ", error.message);
         res.status(500).json({ error: "Internal server error" });
@@ -132,6 +154,121 @@ export const markMessagesAsRead = async (req, res) => {
         res.status(200).json({ message: "Messages marked as read" });
     } catch (error) {
         console.log("Error in markMessagesAsRead controller:", error.message);
+        res.status(500).json({ error: "Internal server error" });
+    }
+};
+
+export const editMessage = async (req, res) => {
+    try {
+        const { id: messageId } = req.params;
+        const { message: newText } = req.body;
+        const senderId = req.user._id;
+
+        if (!newText) {
+            return res.status(400).json({ message: "Message text is required." });
+        }
+
+        const message = await Message.findById(messageId);
+
+        if (!message) {
+            return res.status(404).json({ message: "Message not found" });
+        }
+
+        if (message.sender.toString() !== senderId.toString()) {
+            return res.status(403).json({ message: "Unauthorized to edit this message" });
+        }
+
+        message.message = newText;
+        message.isEdited = true;
+        await message.save();
+
+        const populatedMessage = await Message.findById(message._id).populate("sender", "name profilePicture");
+
+        const receiverSocketId = getReceiverSocketId(message.receiver);
+        if (receiverSocketId) {
+            io.to(receiverSocketId).emit("messageEdited", populatedMessage);
+        }
+
+        res.status(200).json(populatedMessage);
+    } catch (error) {
+        console.log("Error in editMessage controller: ", error.message);
+        res.status(500).json({ error: "Internal server error" });
+    }
+};
+
+export const deleteMessage = async (req, res) => {
+    try {
+        const { id: messageId } = req.params;
+        const senderId = req.user._id;
+
+        const message = await Message.findById(messageId);
+
+        if (!message) {
+            return res.status(404).json({ message: "Message not found" });
+        }
+
+        if (message.sender.toString() !== senderId.toString()) {
+            return res.status(403).json({ message: "Unauthorized to delete this message" });
+        }
+
+        const receiverId = message.receiver;
+
+        // Find the conversation to remove the message from its array
+        const conversation = await Conversation.findOne({
+            participants: { $all: [senderId, receiverId] },
+        });
+
+        if (conversation) {
+            conversation.messages = conversation.messages.filter(
+                (msgId) => msgId.toString() !== messageId.toString()
+            );
+
+            // If it was the last message, update lastMessage pointer
+            if (conversation.lastMessage?.toString() === messageId.toString()) {
+                conversation.lastMessage = conversation.messages.length > 0 
+                    ? conversation.messages[conversation.messages.length - 1] 
+                    : null;
+            }
+
+            await conversation.save();
+        }
+
+        await Message.findByIdAndDelete(messageId);
+
+        const receiverSocketId = getReceiverSocketId(receiverId);
+        if (receiverSocketId) {
+            io.to(receiverSocketId).emit("messageDeleted", messageId);
+        }
+
+        res.status(200).json({ message: "Message deleted successfully", messageId });
+    } catch (error) {
+        console.log("Error in deleteMessage controller: ", error.message);
+        res.status(500).json({ error: "Internal server error" });
+    }
+};
+
+export const clearConversation = async (req, res) => {
+    try {
+        const { id: friendId } = req.params;
+        const userId = req.user._id;
+
+        const conversation = await Conversation.findOne({
+            participants: { $all: [userId, friendId] },
+        });
+
+        if (!conversation) {
+            return res.status(404).json({ message: "Conversation not found" });
+        }
+
+        // Add the current user to the deletedBy array for all messages in this conversation
+        await Message.updateMany(
+            { _id: { $in: conversation.messages } },
+            { $addToSet: { deletedBy: userId } }
+        );
+
+        res.status(200).json({ message: "Conversation cleared successfully" });
+    } catch (error) {
+        console.log("Error in clearConversation controller: ", error.message);
         res.status(500).json({ error: "Internal server error" });
     }
 };

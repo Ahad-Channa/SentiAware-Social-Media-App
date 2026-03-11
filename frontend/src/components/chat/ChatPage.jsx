@@ -157,6 +157,44 @@ const ChatPage = () => {
          });
     };
 
+    // Callback to delete a chat history from the current user's perspective
+    const handleDeleteChat = async (friendId) => {
+        try {
+            await api.delete(`/api/messages/conversation/${friendId}`);
+            
+            // Remove chat preview locally
+            setFriends(prevFriends => {
+                const updatedFriends = prevFriends.map(friend => {
+                    if (friend._id === friendId) {
+                        return {
+                            ...friend,
+                            lastMessage: null,
+                            updatedAt: null,
+                            unreadCount: 0
+                        };
+                    }
+                    return friend;
+                });
+
+                // Re-sort so this friend drops to the alphabetical/bottom section
+                return updatedFriends.sort((a, b) => {
+                    if (a.updatedAt && b.updatedAt) {
+                        return new Date(b.updatedAt) - new Date(a.updatedAt);
+                    } else if (a.updatedAt) { return -1; }
+                    else if (b.updatedAt) { return 1; }
+                    return 0; // Both have no recent chats
+                });
+            });
+
+            // If we are currently viewing this chat, close it
+            if (selectedChat && selectedChat._id === friendId) {
+                setSelectedChat(null);
+            }
+        } catch (error) {
+            console.error("Failed to clear conversation", error);
+        }
+    };
+
     return (
         <div className="min-h-screen bg-[#1A1A24] pt-8 pb-12 flex justify-center">
             <div className="max-w-[1200px] w-full px-4 sm:px-6 h-[80vh]">
@@ -168,6 +206,7 @@ const ChatPage = () => {
                             friends={friends}
                             selectedChat={selectedChat}
                             setSelectedChat={setSelectedChat}
+                            onDeleteChat={handleDeleteChat}
                         />
                     </div>
 
