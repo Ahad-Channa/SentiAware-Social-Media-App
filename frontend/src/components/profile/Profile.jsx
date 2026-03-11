@@ -35,9 +35,14 @@ const Profile = () => {
 
   const user = {
     name: displayUser.name || "No Name",
-    username: displayUser.email ? displayUser.email.split('@')[0] : "user",
+    username: displayUser.nickname || (displayUser.email ? displayUser.email.split('@')[0] : "user"),
+    nickname: displayUser.nickname || "No nickname",
     avatar: displayUser.profilePic,
     location: displayUser.location || "Earth",
+    address: displayUser.address || "No address provided.",
+    phone: displayUser.phone || "No phone provided.",
+    email: displayUser.email || "No email",
+    gender: displayUser.gender || "Not specified",
     joinDate,
     bio: displayUser.bio || "No bio yet.",
     totalPosts: displayUser.totalPosts || 0,
@@ -143,8 +148,38 @@ const Profile = () => {
           )}
 
           {activeTab === 'about' && (
-            <div className="bg-[#232330] rounded-2xl border border-[#2D2D3B] p-8 text-center text-gray-400">
-              <p>More detailed information about {user.name} will appear here.</p>
+            <div className="bg-[#232330] rounded-2xl border border-[#2D2D3B] p-8 text-white shadow-sm">
+              <h2 className="text-xl font-bold mb-6 border-b border-[#2D2D3B] pb-4">Personal Details</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <p className="text-xs text-gray-500 uppercase font-semibold tracking-wider mb-1">Nickname</p>
+                  <p className="font-medium">{user.nickname}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase font-semibold tracking-wider mb-1">Email</p>
+                  <p className="font-medium">{user.email}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase font-semibold tracking-wider mb-1">Phone</p>
+                  <p className="font-medium">{user.phone}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase font-semibold tracking-wider mb-1">Gender</p>
+                  <p className="font-medium capitalize">{user.gender}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase font-semibold tracking-wider mb-1">Location</p>
+                  <p className="font-medium">{user.location}</p>
+                </div>
+                <div className="md:col-span-2">
+                  <p className="text-xs text-gray-500 uppercase font-semibold tracking-wider mb-1">Address</p>
+                  <p className="font-medium">{user.address}</p>
+                </div>
+                <div className="md:col-span-2">
+                  <p className="text-xs text-gray-500 uppercase font-semibold tracking-wider mb-1">About Me</p>
+                  <p className="text-gray-300 leading-relaxed">{user.bio}</p>
+                </div>
+              </div>
             </div>
           )}
         </div>

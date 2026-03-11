@@ -12,8 +12,11 @@ const EditProfile = () => {
 
   const [formData, setFormData] = useState({
     fullName: '',
+    nickname: '',
     bio: '',
     location: '',
+    address: '',
+    phone: '',
   });
   const [avatarPreview, setAvatarPreview] = useState('');
   const [profilePicFile, setProfilePicFile] = useState(null);
@@ -24,8 +27,11 @@ const EditProfile = () => {
     if (user) {
       setFormData({
         fullName: user.name || '',
+        nickname: user.nickname || '',
         bio: user.bio || '',
         location: user.location || '',
+        address: user.address || '',
+        phone: user.phone || '',
       });
       setAvatarPreview(user.profilePic || '');
     }
@@ -51,11 +57,13 @@ const EditProfile = () => {
     setIsLoading(true);
 
     try {
-      // Make FormData object to send file + text
       const form = new FormData();
       form.append('name', formData.fullName);
+      form.append('nickname', formData.nickname);
       form.append('bio', formData.bio);
       form.append('location', formData.location);
+      form.append('address', formData.address);
+      form.append('phone', formData.phone);
       if (profilePicFile) form.append('profilePic', profilePicFile);
 
       // Ensure your backend route matches
@@ -134,6 +142,18 @@ const EditProfile = () => {
               </div>
 
               <div>
+                <label className="block text-sm font-semibold text-white mb-1.5">Nickname (Optional)</label>
+                <input
+                  type="text"
+                  name="nickname"
+                  value={formData.nickname}
+                  onChange={handleChange}
+                  className="block w-full px-4 py-2.5 bg-[#1A1A24] border border-[#2D2D3B] rounded-lg text-white focus:bg-[#1A1A24] focus:ring-2 focus:ring-[#8E54E9]/50 focus:border-[#8E54E9] transition-all outline-none"
+                  placeholder="e.g. Nenu"
+                />
+              </div>
+
+              <div>
                 <label className="block text-sm font-semibold text-white mb-1.5">Bio</label>
                 <textarea
                   name="bio"
@@ -154,6 +174,30 @@ const EditProfile = () => {
                   onChange={handleChange}
                   className="block w-full px-4 py-2.5 bg-[#1A1A24] border border-[#2D2D3B] rounded-lg text-white focus:bg-[#1A1A24] focus:ring-2 focus:ring-[#8E54E9]/50 focus:border-[#8E54E9] transition-all outline-none"
                   placeholder="City, Country"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-white mb-1.5">Address</label>
+                <input
+                  type="text"
+                  name="address"
+                  value={formData.address}
+                  onChange={handleChange}
+                  className="block w-full px-4 py-2.5 bg-[#1A1A24] border border-[#2D2D3B] rounded-lg text-white focus:bg-[#1A1A24] focus:ring-2 focus:ring-[#8E54E9]/50 focus:border-[#8E54E9] transition-all outline-none"
+                  placeholder="Complete Address"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-white mb-1.5">Phone Number</label>
+                <input
+                  type="text"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  className="block w-full px-4 py-2.5 bg-[#1A1A24] border border-[#2D2D3B] rounded-lg text-white focus:bg-[#1A1A24] focus:ring-2 focus:ring-[#8E54E9]/50 focus:border-[#8E54E9] transition-all outline-none"
+                  placeholder="e.g. +1 234 567 8900"
                 />
               </div>
             </div>

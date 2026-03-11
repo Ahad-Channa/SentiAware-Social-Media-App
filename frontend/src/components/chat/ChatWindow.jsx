@@ -140,7 +140,7 @@ const ChatWindow = ({ selectedChat, setSelectedChat, currentUser, onMessageSent 
                         </div>
                     )}
                     <div>
-                        <h3 className="text-white font-medium">{selectedChat.name}</h3>
+                        <h3 className="text-white font-medium">{selectedChat.nickname || selectedChat.name}</h3>
                     </div>
                 </div>
             </div>
@@ -247,7 +247,7 @@ const ChatWindow = ({ selectedChat, setSelectedChat, currentUser, onMessageSent 
                         type="text"
                         value={newMessage}
                         onChange={(e) => setNewMessage(e.target.value)}
-                        placeholder={`Message ${selectedChat.name}...`}
+                        placeholder={`Message ${selectedChat.nickname || selectedChat.name}...`}
                         className="flex-1 bg-[#1A1A24] text-white border border-[#2D2D3B] rounded-full px-4 py-2.5 focus:outline-none focus:border-[#8E54E9] transition-colors"
                     />
                     <button

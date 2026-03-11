@@ -48,7 +48,7 @@ const ConversationList = ({ friends, selectedChat, setSelectedChat, onDeleteChat
                                 <div className="flex-1 min-w-0">
                                     <h3 className={`font-medium truncate ${unreadCount > 0 ? "text-white font-bold" : "text-white"}`}>{friend.name}</h3>
                                     <p className={`text-sm truncate ${unreadCount > 0 ? "text-gray-300 font-medium" : "text-gray-400"}`}>
-                                        {friend.lastMessage ? friend.lastMessage.message : `@${friend.username || "user"}`}
+                                        {friend.lastMessage ? friend.lastMessage.message : `@${friend.nickname || friend.email?.split('@')[0] || "user"}`}
                                     </p>
                                 </div>
 

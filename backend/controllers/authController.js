@@ -229,8 +229,11 @@ export const loginUser = async (req, res) => {
       name: user.name,
       email: user.email,
       profilePic: user.profilePic,
-      bio: user.bio || "",          // ✅ return bio
-      location: user.location || "", // ✅ return location
+      bio: user.bio || "",
+      location: user.location || "",
+      address: user.address || "",
+      phone: user.phone || "",
+      nickname: user.nickname || "",
       token: generateToken(user._id),
       createdAt: user.createdAt,
       friends: user.friends || [],
@@ -245,7 +248,7 @@ export const loginUser = async (req, res) => {
 export const updateUserProfile = async (req, res) => {
   try {
     const userId = req.user._id; // assuming auth middleware adds req.user
-    const { name, bio, location, address } = req.body;
+    const { name, bio, location, address, phone, nickname } = req.body;
 
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User not found" });
@@ -254,6 +257,8 @@ export const updateUserProfile = async (req, res) => {
     user.bio = bio || user.bio;
     user.location = location || user.location;
     user.address = address || user.address;
+    user.phone = phone || user.phone;
+    if (nickname !== undefined) user.nickname = nickname;
 
     // ✅ Proper profilePic update
     if (req.file) {
@@ -271,6 +276,8 @@ export const updateUserProfile = async (req, res) => {
       bio: updatedUser.bio,
       location: updatedUser.location,
       address: updatedUser.address,
+      phone: updatedUser.phone,
+      nickname: updatedUser.nickname,
       token: generateToken(updatedUser._id),
     });
   } catch (error) {

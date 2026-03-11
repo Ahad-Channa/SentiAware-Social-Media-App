@@ -241,7 +241,7 @@ export const getFriendsList = async (req, res) => {
   try {
     const user = await User.findById(req.user._id).populate(
       "friends",
-      "name profilePic"
+      "name profilePic nickname email"
     );
 
     res.json(user.friends);
