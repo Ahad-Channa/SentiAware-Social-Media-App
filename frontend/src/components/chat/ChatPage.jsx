@@ -25,14 +25,30 @@ const ChatPage = () => {
             const friendsData = friendsRes.data;
             const convosData = convosRes.data;
 
-            // Merge conversation data (lastMessage, updatedAt, unreadCount) into friends
-            const mergedFriends = friendsData.map(friend => {
+            // Map friends into a map for fast lookup
+            const userMap = new Map();
+            friendsData.forEach(friend => {
+                userMap.set(friend._id.toString(), friend);
+            });
+
+            // Iterate over conversations, add any participant that's not the current user and not in userMap
+            convosData.forEach(convo => {
+                const otherParticipant = convo.participants.find(p => p._id.toString() !== user._id.toString());
+                if (otherParticipant && !userMap.has(otherParticipant._id.toString())) {
+                    userMap.set(otherParticipant._id.toString(), otherParticipant);
+                }
+            });
+
+            const chatUsers = Array.from(userMap.values());
+
+            // Merge conversation data (lastMessage, updatedAt, unreadCount) into chatUsers
+            const mergedFriends = chatUsers.map(chatUser => {
                 const convo = convosData.find(c =>
-                    c.participants.some(p => p._id === friend._id)
+                    c.participants.some(p => p._id === chatUser._id)
                 );
 
                 return {
-                    ...friend,
+                    ...chatUser,
                     lastMessage: convo ? convo.lastMessage : null,
                     updatedAt: convo ? convo.updatedAt : null,
                     unreadCount: convo ? convo.unreadCount || 0 : 0
@@ -89,12 +105,30 @@ const ChatPage = () => {
 
         const handleNewMessage = (message) => {
             setFriends(prevFriends => {
-                const updatedFriends = prevFriends.map(friend => {
+                const senderId = typeof message.sender === 'object' ? message.sender._id : message.sender;
+                
+                // If it's a completely new person messaging us (unfriended and no visible chat), add them
+                const isExistingChat = prevFriends.some(f => f._id === senderId || message.receiver === f._id);
+                let updatedFriends = [...prevFriends];
+
+                if (!isExistingChat && senderId !== user._id) {
+                    // Populate basic sender info if it's an object from socket
+                    if (typeof message.sender === 'object') {
+                        updatedFriends.push({
+                            ...message.sender,
+                            lastMessage: message,
+                            updatedAt: new Date().toISOString(),
+                            unreadCount: 1
+                        });
+                    }
+                }
+
+                updatedFriends = updatedFriends.map(friend => {
                     // Check if message is relevant to this friend
-                    if (message.sender._id === friend._id || message.receiver === friend._id || message.sender === friend._id) {
+                    if (senderId === friend._id || message.receiver === friend._id) {
 
                         // Increment unread count if the message is from them AND we are not currently chatting with them
-                        const isFromThem = message.sender._id === friend._id || message.sender === friend._id;
+                        const isFromThem = senderId === friend._id;
                         const isCurrentlyChatting = selectedChat && selectedChat._id === friend._id;
 
                         let newUnreadCount = friend.unreadCount || 0;

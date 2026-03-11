@@ -14,7 +14,7 @@ const ConversationList = ({ friends, selectedChat, setSelectedChat, onDeleteChat
 
             <div className="flex-1 overflow-y-auto p-2 space-y-1">
                 {friends.length === 0 ? (
-                    <p className="text-gray-400 text-center text-sm p-4">No friends to chat with.</p>
+                    <p className="text-gray-400 text-center text-sm p-4">No conversations yet.</p>
                 ) : (
                     friends.map((friend) => {
                         const isOnline = onlineUsers.includes(friend._id);

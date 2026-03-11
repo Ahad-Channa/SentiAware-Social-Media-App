@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import api from "../../api/api";
 import { useSocketContext } from "../../context/SocketContext";
 import { format } from "date-fns";
+import { useNavigate } from "react-router-dom";
 
 const ChatWindow = ({ selectedChat, setSelectedChat, currentUser, onMessageSent }) => {
     const [messages, setMessages] = useState([]);
@@ -12,6 +13,7 @@ const ChatWindow = ({ selectedChat, setSelectedChat, currentUser, onMessageSent 
     const [openDropdownId, setOpenDropdownId] = useState(null);
     const messagesEndRef = useRef(null);
     const { socket } = useSocketContext();
+    const navigate = useNavigate();
 
     useEffect(() => {
         const fetchMessages = async () => {
@@ -127,7 +129,10 @@ const ChatWindow = ({ selectedChat, setSelectedChat, currentUser, onMessageSent 
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                     </svg>
                 </button>
-                <div className="flex items-center gap-3">
+                <div 
+                    className="flex items-center gap-3 cursor-pointer hover:bg-[#2A2A3A] p-2 rounded-xl transition-colors"
+                    onClick={() => navigate(`/profile/${selectedChat._id}`)}
+                >
                     {selectedChat.profilePic ? (
                         <img
                             src={selectedChat.profilePic}
