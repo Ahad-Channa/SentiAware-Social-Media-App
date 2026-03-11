@@ -9,8 +9,9 @@ import {
   rejectFriendRequest,
   unfriendUser,
 } from "../../redux/friendsSlice";
+import { addFriendLocally, removeFriendLocally } from "../../redux/authSlice";
 
-const FriendButton = ({ targetUserId }) => {
+const FriendButton = ({ targetUserId, onFriendAdded, onFriendRemoved }) => {
   const dispatch = useDispatch();
   const status = useSelector((state) => state.friends.statusByUser[targetUserId]);
   const loading = useSelector((state) => state.friends.loading);
@@ -26,9 +27,20 @@ const FriendButton = ({ targetUserId }) => {
 
   const onSend = () => dispatch(sendFriendRequest(targetUserId));
   const onCancel = () => dispatch(cancelFriendRequest(targetUserId));
-  const onAccept = () => dispatch(acceptFriendRequest(targetUserId));
+  
+  const onAccept = async () => {
+    await dispatch(acceptFriendRequest(targetUserId));
+    dispatch(addFriendLocally(targetUserId)); // Updates profile active friend count instantly
+    if (onFriendAdded) onFriendAdded();
+  };
+  
   const onReject = () => dispatch(rejectFriendRequest(targetUserId));
-  const onUnfriend = () => dispatch(unfriendUser(targetUserId));
+  
+  const onUnfriend = async () => {
+    await dispatch(unfriendUser(targetUserId));
+    dispatch(removeFriendLocally(targetUserId)); // Updates profile active friend count instantly
+    if (onFriendRemoved) onFriendRemoved();
+  };
 
   // default state while loading
   if (loading && !status) {

@@ -26,6 +26,26 @@ const PublicProfile = () => {
     fetchProfile();
   }, [id]);
 
+  const handleFriendAdded = () => {
+    setUser(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        friends: [...(prev.friends || []), 'new_friend_placeholder']
+      };
+    });
+  };
+
+  const handleFriendRemoved = () => {
+    setUser(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        friends: prev.friends && prev.friends.length > 0 ? prev.friends.slice(0, -1) : []
+      };
+    });
+  };
+
   if (loading) {
     return <div className="min-h-screen flex justify-center items-center">Loading...</div>;
   }
@@ -88,7 +108,11 @@ const PublicProfile = () => {
 
           {/* Friend Action Button */}
           <div className="mt-6">
-            <FriendButton targetUserId={id} />
+            <FriendButton 
+              targetUserId={id} 
+              onFriendAdded={handleFriendAdded}
+              onFriendRemoved={handleFriendRemoved}
+            />
           </div>
         </div>
 

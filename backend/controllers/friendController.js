@@ -1,4 +1,5 @@
 import User from "../models/User.js";
+import { getReceiverSocketId, io } from "../socket/socket.js";
 import Notification from "../models/Notification.js";
 
 // Helper: convert ObjectId to string
@@ -127,9 +128,15 @@ export const acceptFriendRequest = async (req, res) => {
       relatedId: me,
     });
 
-    res.json({ message: "Friend request accepted" });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+    // REAL-TIME: Notify original sender that their request was accepted!
+    const targetSocketId = getReceiverSocketId(other);
+    if (targetSocketId) {
+        io.to(targetSocketId).emit("friendRequestAccepted", me);
+    }
+
+    res.status(200).json({ message: "Friend request accepted" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };
 
@@ -162,9 +169,15 @@ export const rejectFriendRequest = async (req, res) => {
       type: "friend_request"
     });
 
-    res.json({ message: "Friend request rejected" });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+    // REAL-TIME: Notify sender that their request was rejected
+    const targetSocketId = getReceiverSocketId(other);
+    if (targetSocketId) {
+        io.to(targetSocketId).emit("friendRequestRejected", me);
+    }
+
+    res.status(200).json({ message: "Friend request rejected" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };
 
@@ -185,9 +198,15 @@ export const unfriendUser = async (req, res) => {
     await myData.save();
     await otherData.save();
 
-    res.json({ message: "Unfriended" });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+    // REAL-TIME: Notify the other user that they have been unfriended
+    const targetSocketId = getReceiverSocketId(other);
+    if (targetSocketId) {
+        io.to(targetSocketId).emit("userUnfriended", me);
+    }
+
+    res.status(200).json({ message: "Unfriended" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };
 

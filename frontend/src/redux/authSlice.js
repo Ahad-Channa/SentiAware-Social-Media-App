@@ -28,8 +28,23 @@ const authSlice = createSlice({
         localStorage.setItem("user", JSON.stringify(state.user));
       }
     },
+    addFriendLocally: (state, action) => {
+      if (state.user) {
+        if (!state.user.friends) state.user.friends = [];
+        if (!state.user.friends.includes(action.payload)) {
+          state.user.friends.push(action.payload);
+          localStorage.setItem("user", JSON.stringify(state.user));
+        }
+      }
+    },
+    removeFriendLocally: (state, action) => {
+      if (state.user && state.user.friends) {
+        state.user.friends = state.user.friends.filter(id => id !== action.payload);
+        localStorage.setItem("user", JSON.stringify(state.user));
+      }
+    },
   },
 });
 
-export const { loginSuccess, logout, loadUserFromStorage, updateProfile } = authSlice.actions;
+export const { loginSuccess, logout, loadUserFromStorage, updateProfile, addFriendLocally, removeFriendLocally } = authSlice.actions;
 export default authSlice.reducer;
