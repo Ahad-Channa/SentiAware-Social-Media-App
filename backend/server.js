@@ -7,13 +7,15 @@ import userRoutes from "./routes/userRoutes.js";
 import friendRoutes from "./routes/friendRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
 import postRoutes from "./routes/postRoutes.js";
+import chatRoutes from "./routes/chatRoutes.js";
+import authRoutes from "./routes/authRoutes.js";
+import { app, server } from "./socket/socket.js";
 
 dotenv.config();
 connectDB();
 
-const app = express();
+app.use(express.json());
 
-// Configure CORS
 const allowedOrigins = [
   "http://localhost:5173",
   process.env.CLIENT_URL,
@@ -30,13 +32,10 @@ app.use(cors({
   credentials: true
 }));
 
-app.use(express.json());
-
 app.get("/", (req, res) => {
   res.send("API is running...");
 });
 
-import authRoutes from "./routes/authRoutes.js";
 app.use("/api/auth", authRoutes);
 
 app.get("/api/test", protect, (req, res) => {
@@ -47,7 +46,8 @@ app.use("/api/users", userRoutes);
 app.use("/api/friends", friendRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/posts", postRoutes);
+app.use("/api/messages", chatRoutes);
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));

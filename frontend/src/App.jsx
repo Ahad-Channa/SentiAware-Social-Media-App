@@ -13,6 +13,7 @@ import PublicProfile from "./components/profile/PublicProfile";
 import FriendsList from "./components/friends/FriendsList";
 import FriendRequests from "./components/friends/FriendRequests";
 import SinglePost from "./components/post/SinglePost";
+import ChatPage from "./components/chat/ChatPage";
 
 
 function App() {
@@ -42,7 +43,7 @@ function App() {
           <Route path="/friends/requests" element={isAuthenticated ? <FriendRequests /> : <Navigate to="/login" />} />
 
           <Route path="/feed" element={isAuthenticated ? <Feed /> : <Navigate to="/login" />} />
-          {/* <Route path="/profile" element={isAuthenticated ? <Profile /> : <Navigate to="/login" />} /> Duplicate removed */}
+          <Route path="/chat" element={isAuthenticated ? <ChatPage /> : <Navigate to="/login" />} />
           <Route path="/create-post" element={isAuthenticated ? <CreatePost /> : <Navigate to="/login" />} />
           <Route path="/edit-profile" element={isAuthenticated ? <EditProfile /> : <Navigate to="/login" />} />
           <Route path="/profile/:id" element={isAuthenticated ? <PublicProfile /> : <Navigate to="/login" />} />
