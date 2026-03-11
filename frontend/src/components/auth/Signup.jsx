@@ -15,7 +15,7 @@ const Signup = () => {
   const [loading, setLoading] = useState(false);
 
   // Timer states
-  const [timeLeft, setTimeLeft] = useState(120); // 2 minutes
+  const [timeLeft, setTimeLeft] = useState(60); // 1 minute
   const [canResend, setCanResend] = useState(false);
 
   const dispatch = useDispatch();
@@ -82,7 +82,7 @@ const Signup = () => {
           }
         });
         setShowOtp(true);
-        setTimeLeft(120);
+        setTimeLeft(60);
         setCanResend(false);
       } catch (error) {
         toast.error(error.response?.data?.message || "Failed to send OTP", {
@@ -158,7 +158,7 @@ const Signup = () => {
       });
 
       toast.success("New OTP sent");
-      setTimeLeft(120);
+      setTimeLeft(60);
       setCanResend(false);
     } catch {
       toast.error("Failed to resend OTP");
@@ -341,7 +341,13 @@ const Signup = () => {
       {/* OTP MODAL - Dark Theme Update */}
       {showOtp && (
         <div className="absolute inset-0 z-50 bg-[#000000]/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#1A1A24] p-8 rounded-2xl border border-[#2D2D3B] shadow-2xl w-full max-w-sm animate-in fade-in zoom-in duration-200">
+          <div className="bg-[#1A1A24] p-8 rounded-2xl border border-[#2D2D3B] shadow-2xl w-full max-w-sm animate-in fade-in zoom-in duration-200 relative">
+            <button
+              onClick={() => setShowOtp(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-[#8E54E9] transition-colors p-1"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
             <div className="text-center mb-6">
               <h3 className="text-2xl font-bold text-white">Verify Email</h3>
               <p className="text-sm text-gray-400 mt-2">

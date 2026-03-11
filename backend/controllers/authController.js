@@ -69,7 +69,7 @@ export const registerInit = async (req, res) => {
       password,
       gender,
       otp,
-      expires: Date.now() + 10 * 60 * 1000,
+      expires: Date.now() + 1 * 60 * 1000,
     });
 
 
