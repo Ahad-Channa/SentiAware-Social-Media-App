@@ -3,7 +3,7 @@ import api from "../../api/api";
 import { useSocketContext } from "../../context/SocketContext";
 import { format } from "date-fns";
 
-const ChatWindow = ({ selectedChat, setSelectedChat, currentUser }) => {
+const ChatWindow = ({ selectedChat, setSelectedChat, currentUser, onMessageSent }) => {
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState("");
     const [loading, setLoading] = useState(false);
@@ -54,6 +54,9 @@ const ChatWindow = ({ selectedChat, setSelectedChat, currentUser }) => {
             });
             setMessages((prev) => [...prev, res.data]);
             setNewMessage("");
+            if (onMessageSent) {
+                onMessageSent(res.data);
+            }
         } catch (error) {
             console.error("Failed to send message", error);
         }

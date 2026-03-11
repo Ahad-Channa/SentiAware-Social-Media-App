@@ -67,6 +67,18 @@ export const getMessages = async (req, res) => {
 
         const messages = conversation.messages;
 
+        // Mark incoming messages as read when fetched
+        const unreadMessageIds = messages
+            .filter(m => !m.isRead && m.sender.toString() === userToChatId)
+            .map(m => m._id);
+
+        if (unreadMessageIds.length > 0) {
+            await Message.updateMany(
+                { _id: { $in: unreadMessageIds } },
+                { $set: { isRead: true } }
+            );
+        }
+
         res.status(200).json(messages);
     } catch (error) {
         console.log("Error in getMessages controller: ", error.message);
@@ -76,18 +88,50 @@ export const getMessages = async (req, res) => {
 
 export const getConversations = async (req, res) => {
     try {
-        const senderId = req.user._id;
+        const userId = req.user._id;
 
         const conversations = await Conversation.find({
-            participants: senderId,
+            participants: userId,
         })
             .populate("participants", "-password")
             .populate("lastMessage")
+            .populate("messages")
             .sort({ updatedAt: -1 });
 
-        res.status(200).json(conversations);
+        // Calculate unread count for each conversation
+        const conversationsWithUnread = conversations.map(convo => {
+            const unreadCount = convo.messages.filter(
+                m => m.receiver && m.receiver.toString() === userId.toString() && !m.isRead
+            ).length;
+            
+            // Convert to object to omit fully populated messages array from response (kept lightweight)
+            const convoObj = convo.toObject();
+            delete convoObj.messages;
+            convoObj.unreadCount = unreadCount;
+            
+            return convoObj;
+        });
+
+        res.status(200).json(conversationsWithUnread);
     } catch (error) {
         console.log("Error in getConversations controller: ", error.message);
+        res.status(500).json({ error: "Internal server error" });
+    }
+};
+
+export const markMessagesAsRead = async (req, res) => {
+    try {
+        const { id: senderId } = req.params;
+        const receiverId = req.user._id;
+
+        await Message.updateMany(
+            { sender: senderId, receiver: receiverId, isRead: false },
+            { $set: { isRead: true } }
+        );
+
+        res.status(200).json({ message: "Messages marked as read" });
+    } catch (error) {
+        console.log("Error in markMessagesAsRead controller:", error.message);
         res.status(500).json({ error: "Internal server error" });
     }
 };

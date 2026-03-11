@@ -17,6 +17,7 @@ const ConversationList = ({ friends, selectedChat, setSelectedChat }) => {
                     friends.map((friend) => {
                         const isOnline = onlineUsers.includes(friend._id);
                         const isSelected = selectedChat?._id === friend._id;
+                        const unreadCount = friend.unreadCount || 0;
 
                         return (
                             <div
@@ -43,9 +44,19 @@ const ConversationList = ({ friends, selectedChat, setSelectedChat }) => {
                                 </div>
 
                                 <div className="flex-1 min-w-0">
-                                    <h3 className="text-white font-medium truncate">{friend.name}</h3>
-                                    <p className="text-gray-400 text-sm truncate">@{friend.username || "user"}</p>
+                                    <h3 className={`font-medium truncate ${unreadCount > 0 ? "text-white font-bold" : "text-white"}`}>{friend.name}</h3>
+                                    <p className={`text-sm truncate ${unreadCount > 0 ? "text-gray-300 font-medium" : "text-gray-400"}`}>
+                                        {friend.lastMessage ? friend.lastMessage.message : `@${friend.username || "user"}`}
+                                    </p>
                                 </div>
+
+                                {unreadCount > 0 && (
+                                    <div className="flex-shrink-0 ml-2">
+                                        <span className="inline-flex items-center justify-center w-6 h-6 text-xs font-bold text-white bg-[#8E54E9] rounded-full">
+                                            {unreadCount > 99 ? "99+" : unreadCount}
+                                        </span>
+                                    </div>
+                                )}
                             </div>
                         );
                     })
