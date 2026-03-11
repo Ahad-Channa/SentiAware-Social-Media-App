@@ -4,14 +4,18 @@ import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../../redux/authSlice";
 import { fetchNotifications } from "../../redux/notificationSlice";
+import { fetchUnreadChatsCount } from "../../redux/chatSlice";
 import UserSearch from "../search/UserSearch";
 import NotificationList from "../notifications/NotificationList";
+import { useSocketContext } from "../../context/SocketContext";
 
 const Header = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const user = useSelector((state) => state.auth.user);
   const { unreadCount } = useSelector((state) => state.notifications);
+  const { unreadChatsCount } = useSelector((state) => state.chat);
+  const { socket } = useSocketContext();
 
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -22,10 +26,12 @@ const Header = () => {
   useEffect(() => {
     if (user) {
       dispatch(fetchNotifications());
+      dispatch(fetchUnreadChatsCount());
 
-      // Poll for notifications every 5 seconds
+      // Poll for notifications and chat count every 5 seconds
       const intervalId = setInterval(() => {
         dispatch(fetchNotifications());
+        dispatch(fetchUnreadChatsCount());
       }, 5000);
 
       return () => clearInterval(intervalId);
@@ -87,6 +93,11 @@ const Header = () => {
               title="Messages"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
+              {unreadChatsCount > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white border-2 border-[#1A1A24]">
+                  {unreadChatsCount}
+                </span>
+              )}
             </NavLink>
 
             {/* Friends Icon */}

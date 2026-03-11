@@ -117,13 +117,13 @@ export const getConversations = async (req, res) => {
             const unreadCount = visibleMessages.filter(
                 (m) => m.receiver && m.receiver.toString() === userId.toString() && !m.isRead
             ).length;
-            
+
             const convoObj = convo.toObject();
             delete convoObj.messages;
             convoObj.unreadCount = unreadCount;
             // The true last message for this user is the last visible one
             convoObj.lastMessage = visibleMessages[visibleMessages.length - 1];
-            
+
             activeConversations.push(convoObj);
         });
 
@@ -225,8 +225,8 @@ export const deleteMessage = async (req, res) => {
 
             // If it was the last message, update lastMessage pointer
             if (conversation.lastMessage?.toString() === messageId.toString()) {
-                conversation.lastMessage = conversation.messages.length > 0 
-                    ? conversation.messages[conversation.messages.length - 1] 
+                conversation.lastMessage = conversation.messages.length > 0
+                    ? conversation.messages[conversation.messages.length - 1]
                     : null;
             }
 
@@ -269,6 +269,32 @@ export const clearConversation = async (req, res) => {
         res.status(200).json({ message: "Conversation cleared successfully" });
     } catch (error) {
         console.log("Error in clearConversation controller: ", error.message);
+        res.status(500).json({ error: "Internal server error" });
+    }
+};
+
+export const getUnreadConversationsCount = async (req, res) => {
+    try {
+        const userId = req.user._id;
+
+        const conversations = await Conversation.find({
+            participants: userId,
+        }).populate("messages");
+
+        let unreadCount = 0;
+
+        conversations.forEach((convo) => {
+            const hasUnread = convo.messages.some(
+                (m) => m.receiver && m.receiver.toString() === userId.toString() && !m.isRead && !m.deletedBy?.includes(userId)
+            );
+            if (hasUnread) {
+                unreadCount++;
+            }
+        });
+
+        res.status(200).json({ count: unreadCount });
+    } catch (error) {
+        console.log("Error in getUnreadConversationsCount controller: ", error.message);
         res.status(500).json({ error: "Internal server error" });
     }
 };

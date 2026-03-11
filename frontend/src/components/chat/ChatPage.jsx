@@ -2,13 +2,16 @@ import React, { useState, useEffect } from "react";
 import ConversationList from "./ConversationList";
 import ChatWindow from "./ChatWindow";
 import api from "../../api/api";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { useSocketContext } from "../../context/SocketContext";
+import { useLocation } from "react-router-dom";
+import { fetchUnreadChatsCount } from "../../redux/chatSlice";
 
 const ChatPage = () => {
     const [selectedChat, setSelectedChat] = useState(null);
     const [friends, setFriends] = useState([]);
     const user = useSelector((state) => state.auth.user);
+    const dispatch = useDispatch();
     const { socket } = useSocketContext();
 
     // Fetch both friends and conversations to merge the data
@@ -24,10 +27,10 @@ const ChatPage = () => {
 
             // Merge conversation data (lastMessage, updatedAt, unreadCount) into friends
             const mergedFriends = friendsData.map(friend => {
-                const convo = convosData.find(c => 
+                const convo = convosData.find(c =>
                     c.participants.some(p => p._id === friend._id)
                 );
-                
+
                 return {
                     ...friend,
                     lastMessage: convo ? convo.lastMessage : null,
@@ -62,11 +65,12 @@ const ChatPage = () => {
     const markMessagesAsRead = async (friendId) => {
         try {
             await api.put(`/api/messages/mark-read/${friendId}`);
-            setFriends(prevFriends => 
-                prevFriends.map(f => 
+            setFriends(prevFriends =>
+                prevFriends.map(f =>
                     f._id === friendId ? { ...f, unreadCount: 0 } : f
                 )
             );
+            dispatch(fetchUnreadChatsCount()); // Update the global header badge
         } catch (error) {
             console.error("Failed to mark messages as read", error);
         }
@@ -88,11 +92,11 @@ const ChatPage = () => {
                 const updatedFriends = prevFriends.map(friend => {
                     // Check if message is relevant to this friend
                     if (message.sender._id === friend._id || message.receiver === friend._id || message.sender === friend._id) {
-                        
+
                         // Increment unread count if the message is from them AND we are not currently chatting with them
                         const isFromThem = message.sender._id === friend._id || message.sender === friend._id;
                         const isCurrentlyChatting = selectedChat && selectedChat._id === friend._id;
-                        
+
                         let newUnreadCount = friend.unreadCount || 0;
                         if (isFromThem) {
                             if (isCurrentlyChatting) {
@@ -133,35 +137,35 @@ const ChatPage = () => {
 
     // Callback used by ChatWindow when the current user sends a message
     const handleMessageSent = (newMessage) => {
-         setFriends(prevFriends => {
-             const updatedFriends = prevFriends.map(friend => {
-                 // The message receiver is the friend we're chatting with
-                 if (newMessage.receiver === friend._id) {
-                     return {
-                         ...friend,
-                         lastMessage: newMessage,
-                         updatedAt: new Date().toISOString()
-                     };
-                 }
-                 return friend;
-             });
+        setFriends(prevFriends => {
+            const updatedFriends = prevFriends.map(friend => {
+                // The message receiver is the friend we're chatting with
+                if (newMessage.receiver === friend._id) {
+                    return {
+                        ...friend,
+                        lastMessage: newMessage,
+                        updatedAt: new Date().toISOString()
+                    };
+                }
+                return friend;
+            });
 
-             // Re-sort
-             return updatedFriends.sort((a, b) => {
-                 if (a.updatedAt && b.updatedAt) {
-                     return new Date(b.updatedAt) - new Date(a.updatedAt);
-                 } else if (a.updatedAt) { return -1; }
-                 else if (b.updatedAt) { return 1; }
-                 return 0;
-             });
-         });
+            // Re-sort
+            return updatedFriends.sort((a, b) => {
+                if (a.updatedAt && b.updatedAt) {
+                    return new Date(b.updatedAt) - new Date(a.updatedAt);
+                } else if (a.updatedAt) { return -1; }
+                else if (b.updatedAt) { return 1; }
+                return 0;
+            });
+        });
     };
 
     // Callback to delete a chat history from the current user's perspective
     const handleDeleteChat = async (friendId) => {
         try {
             await api.delete(`/api/messages/conversation/${friendId}`);
-            
+
             // Remove chat preview locally
             setFriends(prevFriends => {
                 const updatedFriends = prevFriends.map(friend => {
@@ -196,8 +200,8 @@ const ChatPage = () => {
     };
 
     return (
-        <div className="min-h-screen bg-[#1A1A24] pt-8 pb-12 flex justify-center">
-            <div className="max-w-[1200px] w-full px-4 sm:px-6 h-[80vh]">
+        <div className="h-[calc(100vh-64px)] bg-[#1A1A24] py-6 px-4 sm:px-6 flex justify-center overflow-hidden">
+            <div className="max-w-[1200px] w-full h-full">
                 <div className="bg-[#232330] rounded-xl border border-[#2D2D3B] shadow-sm flex h-full overflow-hidden">
 
                     {/* Left Sidebar: Conversations */}
