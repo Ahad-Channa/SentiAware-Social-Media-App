@@ -81,6 +81,13 @@ const CreatePost = () => {
     try {
       const formData = new FormData();
       formData.append('content', postContent);
+      
+      // If we showed the suggestion UI and they are publishing, it means they clicked "Accept & Publish". 
+      // We pass the original text so we can log it.
+      if (showSuggestionUI) {
+          formData.append('originalToxicContent', originalText);
+      }
+      
       if (selectedImage) {
         formData.append('image', selectedImage);
       }

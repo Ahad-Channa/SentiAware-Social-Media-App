@@ -9,7 +9,7 @@ import { analyzeText, analyzeImage } from "../services/moderationService.js";
 // @access  Private
 export const createPost = async (req, res) => {
     try {
-        const { content } = req.body;
+        const { content, originalToxicContent } = req.body;
         let imageUrl = "";
 
         // 1. Image Upload & Moderation
@@ -27,17 +27,35 @@ export const createPost = async (req, res) => {
         }
 
         // 2. Text Moderation
-        const moderationResult = await analyzeText(content);
+        // If frontend sends originalToxicContent, it means user already accepted AI suggestion
+        // If they bypass it, we run analyzeText again to be safe
+        let finalContent = content;
+        let isFlagged = false;
+        let toxicityDetails = {};
+        
+        if (originalToxicContent) {
+            isFlagged = true;
+        } else {
+            const moderationResult = await analyzeText(content);
+            if (!moderationResult.safe) {
+                 finalContent = moderationResult.moderatedText;
+                 isFlagged = true;
+                 toxicityDetails = {
+                     originalContent: content,
+                     toxicityScore: moderationResult.score
+                 }
+            }
+        }
 
         // Construct Post Object
         const newPost = new Post({
             author: req.user._id,
-            content: moderationResult.safe ? content : moderationResult.moderatedText,
+            content: finalContent,
             image: imageUrl,
-            originalContent: moderationResult.safe ? undefined : content,
-            isModerated: !moderationResult.safe,
-            moderationStatus: moderationResult.safe ? "safe" : "flagged", // Simple logic for now
-            toxicityScore: moderationResult.score,
+            originalContent: originalToxicContent || toxicityDetails.originalContent || undefined,
+            isModerated: isFlagged,
+            moderationStatus: isFlagged ? "flagged" : "safe", 
+            toxicityScore: toxicityDetails.toxicityScore,
         });
 
         const savedPost = await newPost.save();
@@ -66,6 +84,23 @@ export const validateText = async (req, res) => {
         res.json(moderationResult);
     } catch (error) {
         console.error("Error validating text:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+// @desc    Get moderation logs for current user
+// @route   GET /api/posts/moderated-logs
+// @access  Private
+export const getModerationLogs = async (req, res) => {
+    try {
+        const logs = await Post.find({ 
+            author: req.user._id, 
+            isModerated: true 
+        }).sort({ createdAt: -1 });
+        
+        res.json(logs);
+    } catch (error) {
+        console.error("Error fetching moderation logs:", error);
         res.status(500).json({ message: "Server error" });
     }
 };

@@ -60,6 +60,11 @@ export const validatePostText = async (content) => {
   return res.data;
 };
 
+export const getModerationLogs = async () => {
+  const res = await api.get("/api/posts/moderated-logs");
+  return res.data;
+};
+
 export const getFeedPosts = async () => {
   const res = await api.get("/api/posts/feed");
   return res.data;
