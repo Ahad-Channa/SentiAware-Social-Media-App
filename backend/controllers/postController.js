@@ -105,6 +105,64 @@ export const getModerationLogs = async (req, res) => {
     }
 };
 
+// @desc    Get comment moderation logs for current user
+// @route   GET /api/posts/comment-moderated-logs
+// @access  Private
+export const getCommentModerationLogs = async (req, res) => {
+    try {
+        const userId = req.user._id;
+
+        // Flatten all comments (and nested replies) and filter for moderated ones by this user
+        const posts = await Post.find({
+            $or: [
+                { "comments.user": userId, "comments.isModerated": true },
+                { "comments.replies.user": userId, "comments.replies.isModerated": true }
+            ]
+        });
+
+        const logs = [];
+
+        for (const post of posts) {
+            for (const comment of post.comments) {
+                // Top-level comments
+                if (comment.isModerated && comment.user.toString() === userId.toString()) {
+                    logs.push({
+                        _id: comment._id,
+                        postId: post._id,
+                        type: "comment",
+                        originalText: comment.originalText || "N/A",
+                        text: comment.text,
+                        createdAt: comment.createdAt,
+                    });
+                }
+                // Nested replies
+                if (comment.replies && comment.replies.length > 0) {
+                    for (const reply of comment.replies) {
+                        if (reply.isModerated && reply.user.toString() === userId.toString()) {
+                            logs.push({
+                                _id: reply._id,
+                                postId: post._id,
+                                type: "reply",
+                                originalText: reply.originalText || "N/A",
+                                text: reply.text,
+                                createdAt: reply.createdAt,
+                            });
+                        }
+                    }
+                }
+            }
+        }
+
+        // Sort newest first
+        logs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+        res.json(logs);
+    } catch (error) {
+        console.error("Error fetching comment moderation logs:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
 // @desc    Get all posts (Feed: Friends + Suggestions Shuffled)
 // @route   GET /api/posts/feed
 // @access  Private
@@ -138,13 +196,10 @@ export const getFeedPosts = async (req, res) => {
             { path: "comments.replies.user", select: "name profilePic" }
         ]);
 
-        // 3. Combine and Shuffle
-        const allPosts = [...friendPosts, ...suggestedPosts];
+        // 3. Friends newest-first at top, discovery posts below
+        const feedPosts = [...friendPosts, ...suggestedPosts];
 
-        // Simple shuffle
-        const shuffledPosts = allPosts.sort(() => 0.5 - Math.random());
-
-        res.json(shuffledPosts);
+        res.json(feedPosts);
     } catch (error) {
         console.error("Error fetching feed:", error);
         res.status(500).json({ message: "Server error" });
@@ -245,20 +300,37 @@ export const likePost = async (req, res) => {
 // @access  Private
 export const commentPost = async (req, res) => {
     try {
-        const { text } = req.body;
+        const { text, originalToxicText } = req.body;
         const post = await Post.findById(req.params.id);
 
         if (!post) {
             return res.status(404).json({ message: "Post not found" });
         }
 
-        // Basic comment moderation check (optional, but good practice)
-        const moderationResult = await analyzeText(text);
+        let finalText = text;
+        let isModerated = false;
+        let originalText = undefined;
+
+        if (originalToxicText) {
+            // Frontend already showed warning and user accepted cleaned text
+            isModerated = true;
+            originalText = originalToxicText;
+        } else {
+            // Safety net: re-check on backend
+            const moderationResult = await analyzeText(text);
+            if (!moderationResult.safe) {
+                isModerated = true;
+                originalText = text;
+                finalText = moderationResult.moderatedText;
+            }
+        }
 
         const newComment = {
             user: req.user._id,
-            text: moderationResult.safe ? text : moderationResult.moderatedText,
+            text: finalText,
             createdAt: new Date(),
+            isModerated,
+            originalText,
         };
 
         post.comments.unshift(newComment);
@@ -277,8 +349,6 @@ export const commentPost = async (req, res) => {
             await newNotification.save();
         }
 
-        // Populate the new comment's user to return to frontend
-        // We need to fetch the post again or just manually populate the response
         const updatedPost = await Post.findById(req.params.id)
             .populate("comments.user", "name profilePic");
 
@@ -323,7 +393,7 @@ const deleteCommentRecursive = (comments, targetId) => {
 // @access  Private
 export const replyToComment = async (req, res) => {
     try {
-        const { text } = req.body;
+        const { text, originalToxicText } = req.body;
         const post = await Post.findById(req.params.id);
 
         if (!post) {
@@ -335,13 +405,28 @@ export const replyToComment = async (req, res) => {
             return res.status(404).json({ message: "Comment not found" });
         }
 
-        // Moderation
-        const moderationResult = await analyzeText(text);
+        let finalText = text;
+        let isModerated = false;
+        let originalText = undefined;
+
+        if (originalToxicText) {
+            isModerated = true;
+            originalText = originalToxicText;
+        } else {
+            const moderationResult = await analyzeText(text);
+            if (!moderationResult.safe) {
+                isModerated = true;
+                originalText = text;
+                finalText = moderationResult.moderatedText;
+            }
+        }
 
         const newReply = {
             user: req.user._id,
-            text: moderationResult.safe ? text : moderationResult.moderatedText,
+            text: finalText,
             createdAt: new Date(),
+            isModerated,
+            originalText,
         };
 
         comment.replies.push(newReply);
@@ -391,7 +476,7 @@ export const replyToComment = async (req, res) => {
 // @access  Private
 export const editComment = async (req, res) => {
     try {
-        const { text } = req.body;
+        const { text, originalToxicText } = req.body;
         const post = await Post.findById(req.params.id);
 
         if (!post) {
@@ -408,10 +493,26 @@ export const editComment = async (req, res) => {
             return res.status(401).json({ message: "User not authorized" });
         }
 
-        // Moderation
-        const moderationResult = await analyzeText(text);
+        let finalText = text;
 
-        comment.text = moderationResult.safe ? text : moderationResult.moderatedText;
+        if (originalToxicText) {
+            comment.isModerated = true;
+            comment.originalText = originalToxicText;
+            finalText = text;
+        } else {
+            const moderationResult = await analyzeText(text);
+            if (!moderationResult.safe) {
+                comment.isModerated = true;
+                comment.originalText = text;
+                finalText = moderationResult.moderatedText;
+            } else {
+                // If editing to clean text, reset moderation flag
+                comment.isModerated = false;
+                comment.originalText = undefined;
+            }
+        }
+
+        comment.text = finalText;
         comment.isEdited = true;
 
         await post.save();

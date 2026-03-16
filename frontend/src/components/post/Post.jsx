@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
-import { likePost, commentPost, updatePost, deletePost, replyToComment, editComment, deleteComment, hideComment } from '../../api/api';
+import { likePost, commentPost, updatePost, deletePost, replyToComment, editComment, deleteComment, hideComment, validateCommentText } from '../../api/api';
 
 // Helper to count total comments recursively
 const countComments = (comments) => {
@@ -9,6 +9,44 @@ const countComments = (comments) => {
         return acc + 1 + (comment.replies ? countComments(comment.replies) : 0);
     }, 0);
 };
+
+// Reusable moderation warning banner
+const ModerationWarning = ({ suggestedText, onSuggestedTextChange, onAccept, onCancel }) => (
+    <div className="mt-2 p-3 bg-orange-500/10 border border-orange-500/20 rounded-xl">
+        <div className="flex items-start gap-2 mb-2">
+            <svg className="w-4 h-4 text-orange-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <div className="flex-1">
+                <p className="text-xs font-semibold text-orange-400 mb-1">Content Warning</p>
+                <p className="text-xs text-slate-300 mb-2">Your message contains language that violates community guidelines. Here's a suggested version — you can edit it.</p>
+                <input
+                    className="w-full text-xs bg-[#1A1A24] border border-orange-500/30 text-white rounded-lg px-3 py-2 focus:outline-none focus:border-orange-400 mb-2"
+                    value={suggestedText}
+                    onChange={(e) => onSuggestedTextChange(e.target.value)}
+                />
+                <div className="flex gap-2">
+                    <button onClick={onAccept} className="text-xs bg-orange-500 hover:bg-orange-600 text-white px-3 py-1 rounded-lg transition-colors font-medium">
+                        Accept &amp; Post
+                    </button>
+                    <button onClick={onCancel} className="text-xs text-slate-400 hover:text-slate-200 px-3 py-1 rounded-lg transition-colors">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+);
+
+// AI Moderated badge for comments
+const ModeratedBadge = () => (
+    <span className="inline-flex items-center gap-1 text-[10px] text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded-full font-medium ml-1">
+        <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+        </svg>
+        AI Moderated
+    </span>
+);
 
 // Recursive Comment Component - Minimal Design
 const CommentItem = ({ comment, postId, postAuthorId, onUpdateComments }) => {
@@ -18,20 +56,46 @@ const CommentItem = ({ comment, postId, postAuthorId, onUpdateComments }) => {
     const [editText, setEditText] = useState(comment.text);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-    // Safety check for user object
+    // Moderation state for reply
+    const [isValidatingReply, setIsValidatingReply] = useState(false);
+    const [replyModerationWarning, setReplyModerationWarning] = useState(null); // { suggested, original }
+
+    // Moderation state for edit
+    const [isValidatingEdit, setIsValidatingEdit] = useState(false);
+    const [editModerationWarning, setEditModerationWarning] = useState(null); // { suggested, original }
+
     const user = comment.user || { name: "Unknown", _id: "unknown", profilePic: "" };
     const currentUser = JSON.parse(localStorage.getItem('user'));
 
     const isCommentAuthor = currentUser && (currentUser._id === user._id || currentUser.id === user._id);
     const isPostOwner = currentUser && (currentUser._id === postAuthorId || currentUser.id === postAuthorId);
-
-    // If hidden and not post owner, don't show content (or show restricted view)
     const isHiddenForViewer = comment.isHidden && !isPostOwner;
 
+    // --- Reply handlers ---
     const handleReplySubmit = async () => {
         if (!replyText.trim()) return;
+        setIsValidatingReply(true);
         try {
-            const updatedComments = await replyToComment(postId, comment._id, replyText);
+            const result = await validateCommentText(replyText);
+            if (!result.safe) {
+                setReplyModerationWarning({ suggested: result.moderatedText, original: replyText });
+                setIsValidatingReply(false);
+                return;
+            }
+        } catch (_) { /* fail open */ }
+        setIsValidatingReply(false);
+        await submitReply(replyText, null);
+    };
+
+    const handleReplyAcceptModeration = async () => {
+        const { suggested, original } = replyModerationWarning;
+        setReplyModerationWarning(null);
+        await submitReply(suggested, original);
+    };
+
+    const submitReply = async (text, originalToxicText) => {
+        try {
+            const updatedComments = await replyToComment(postId, comment._id, text, originalToxicText);
             onUpdateComments(updatedComments);
             setReplyText("");
             setIsReplying(false);
@@ -40,9 +104,30 @@ const CommentItem = ({ comment, postId, postAuthorId, onUpdateComments }) => {
         }
     };
 
+    // --- Edit handlers ---
     const handleEditSubmit = async () => {
+        setIsValidatingEdit(true);
         try {
-            const updatedComments = await editComment(postId, comment._id, editText);
+            const result = await validateCommentText(editText);
+            if (!result.safe) {
+                setEditModerationWarning({ suggested: result.moderatedText, original: editText });
+                setIsValidatingEdit(false);
+                return;
+            }
+        } catch (_) { /* fail open */ }
+        setIsValidatingEdit(false);
+        await submitEdit(editText, null);
+    };
+
+    const handleEditAcceptModeration = async () => {
+        const { suggested, original } = editModerationWarning;
+        setEditModerationWarning(null);
+        await submitEdit(suggested, original);
+    };
+
+    const submitEdit = async (text, originalToxicText) => {
+        try {
+            const updatedComments = await editComment(postId, comment._id, text, originalToxicText);
             onUpdateComments(updatedComments);
             setIsEditing(false);
         } catch (error) {
@@ -50,9 +135,8 @@ const CommentItem = ({ comment, postId, postAuthorId, onUpdateComments }) => {
         }
     };
 
-    const handleDeleteClick = () => {
-        setShowDeleteModal(true);
-    };
+    // --- Delete handlers ---
+    const handleDeleteClick = () => setShowDeleteModal(true);
 
     const confirmDelete = async () => {
         try {
@@ -77,11 +161,7 @@ const CommentItem = ({ comment, postId, postAuthorId, onUpdateComments }) => {
         <div className="flex gap-3 mt-4 group">
             <Link to={`/profile/${user._id}`} className="flex-shrink-0 mt-1">
                 {user.profilePic ? (
-                    <img
-                        src={user.profilePic}
-                        alt={user.name}
-                        className="h-8 w-8 rounded-full object-cover ring-1 ring-gray-100"
-                    />
+                    <img src={user.profilePic} alt={user.name} className="h-8 w-8 rounded-full object-cover ring-1 ring-gray-100" />
                 ) : (
                     <div className="h-8 w-8 rounded-full bg-[#2A2A3A] flex items-center justify-center text-gray-400 text-xs font-bold border border-[#2D2D3B]">
                         {user.name?.[0]?.toUpperCase()}
@@ -89,8 +169,8 @@ const CommentItem = ({ comment, postId, postAuthorId, onUpdateComments }) => {
                 )}
             </Link>
             <div className="flex-1 min-w-0">
-                <div className={` ${comment.isHidden ? 'opacity-60' : ''}`}>
-                    <div className="flex items-center gap-2 mb-0.5">
+                <div className={`${comment.isHidden ? 'opacity-60' : ''}`}>
+                    <div className="flex items-center gap-1 flex-wrap mb-0.5">
                         <Link to={`/profile/${user._id}`} className="font-semibold text-sm text-white hover:text-[#8E54E9] transition-colors">
                             {user.name}
                         </Link>
@@ -99,50 +179,55 @@ const CommentItem = ({ comment, postId, postAuthorId, onUpdateComments }) => {
                         </span>
                         {comment.isEdited && <span className="text-[10px] text-gray-400">(edited)</span>}
                         {comment.isHidden && <span className="text-[10px] text-red-500 font-medium bg-red-50 px-1 rounded">Hidden</span>}
+                        {comment.isModerated && <ModeratedBadge />}
                     </div>
 
                     {isHiddenForViewer ? (
                         <p className="text-gray-400 italic text-sm">Comment hidden by author</p>
-                    ) : (
-                        isEditing ? (
-                            <div className="mt-1">
-                                <input
-                                    className="w-full text-sm p-2 border border-[#2D2D3B] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8E54E9]/20 bg-[#1A1A24] text-white"
-                                    value={editText}
-                                    onChange={(e) => setEditText(e.target.value)}
-                                    autoFocus
+                    ) : isEditing ? (
+                        <div className="mt-1">
+                            <input
+                                className="w-full text-sm p-2 border border-[#2D2D3B] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8E54E9]/20 bg-[#1A1A24] text-white"
+                                value={editText}
+                                onChange={(e) => setEditText(e.target.value)}
+                                autoFocus
+                            />
+                            {editModerationWarning ? (
+                                <ModerationWarning
+                                    suggestedText={editModerationWarning.suggested}
+                                    onSuggestedTextChange={(val) => setEditModerationWarning(prev => ({ ...prev, suggested: val }))}
+                                    onAccept={handleEditAcceptModeration}
+                                    onCancel={() => { setEditModerationWarning(null); setIsEditing(false); }}
                                 />
+                            ) : (
                                 <div className="flex gap-2 mt-2 text-xs">
-                                    <button onClick={handleEditSubmit} className="text-white bg-[#8E54E9] hover:bg-[#7A42E4] px-3 py-1 rounded-md transition-colors">Save</button>
+                                    <button
+                                        onClick={handleEditSubmit}
+                                        disabled={isValidatingEdit}
+                                        className="text-white bg-[#8E54E9] hover:bg-[#7A42E4] px-3 py-1 rounded-md transition-colors disabled:opacity-50"
+                                    >
+                                        {isValidatingEdit ? 'Checking...' : 'Save'}
+                                    </button>
                                     <button onClick={() => setIsEditing(false)} className="text-gray-400 hover:bg-[#2A2A3A] px-3 py-1 rounded-md transition-colors">Cancel</button>
                                 </div>
-                            </div>
-                        ) : (
-                            <p className="text-gray-300 text-sm leading-relaxed">{comment.text}</p>
-                        )
+                            )}
+                        </div>
+                    ) : (
+                        <p className="text-gray-300 text-sm leading-relaxed">{comment.text}</p>
                     )}
                 </div>
 
                 {/* Actions Line */}
                 <div className="flex items-center gap-3 mt-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                    <button
-                        onClick={() => setIsReplying(!isReplying)}
-                        className="text-xs text-gray-500 hover:text-gray-300 font-medium cursor-pointer transition-colors"
-                    >
+                    <button onClick={() => setIsReplying(!isReplying)} className="text-xs text-gray-500 hover:text-gray-300 font-medium cursor-pointer transition-colors">
                         Reply
                     </button>
-
                     {isCommentAuthor && !isHiddenForViewer && (
                         <>
-                            <button onClick={() => setIsEditing(!isEditing)} className="text-xs text-gray-500 hover:text-blue-600">
-                                Edit
-                            </button>
-                            <button onClick={handleDeleteClick} className="text-xs text-gray-500 hover:text-red-600">
-                                Delete
-                            </button>
+                            <button onClick={() => setIsEditing(!isEditing)} className="text-xs text-gray-500 hover:text-blue-600">Edit</button>
+                            <button onClick={handleDeleteClick} className="text-xs text-gray-500 hover:text-red-600">Delete</button>
                         </>
                     )}
-
                     {isPostOwner && (
                         <button onClick={handleHide} className="text-xs text-gray-500 hover:text-orange-600">
                             {comment.isHidden ? "Unhide" : "Hide"}
@@ -150,27 +235,38 @@ const CommentItem = ({ comment, postId, postAuthorId, onUpdateComments }) => {
                     )}
                 </div>
 
-                {/* Reply Input */}
+                {/* Reply Input + Moderation Warning */}
                 {isReplying && (
-                    <div className="mt-3 flex items-center gap-2 max-w-lg">
-                        <input
-                            type="text"
-                            value={replyText}
-                            onChange={(e) => setReplyText(e.target.value)}
-                            placeholder={`Reply to ${user.name}...`}
-                            className="flex-1 bg-[#1A1A24] border border-[#2D2D3B] text-white rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-[#8E54E9] focus:ring-1 focus:ring-[#8E54E9]/20"
-                            autoFocus
-                        />
-                        <button
-                            onClick={handleReplySubmit}
-                            className="text-xs bg-[#8E54E9] text-white px-3 py-1.5 rounded-lg hover:bg-[#7A42E4] transition-colors"
-                        >
-                            Send
-                        </button>
+                    <div className="mt-3 max-w-lg">
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="text"
+                                value={replyText}
+                                onChange={(e) => setReplyText(e.target.value)}
+                                placeholder={`Reply to ${user.name}...`}
+                                className="flex-1 bg-[#1A1A24] border border-[#2D2D3B] text-white rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-[#8E54E9] focus:ring-1 focus:ring-[#8E54E9]/20"
+                                autoFocus
+                            />
+                            <button
+                                onClick={handleReplySubmit}
+                                disabled={isValidatingReply || !replyText.trim()}
+                                className="text-xs bg-[#8E54E9] text-white px-3 py-1.5 rounded-lg hover:bg-[#7A42E4] transition-colors disabled:opacity-50"
+                            >
+                                {isValidatingReply ? '...' : 'Send'}
+                            </button>
+                        </div>
+                        {replyModerationWarning && (
+                            <ModerationWarning
+                                suggestedText={replyModerationWarning.suggested}
+                                onSuggestedTextChange={(val) => setReplyModerationWarning(prev => ({ ...prev, suggested: val }))}
+                                onAccept={handleReplyAcceptModeration}
+                                onCancel={() => { setReplyModerationWarning(null); setReplyText(""); setIsReplying(false); }}
+                            />
+                        )}
                     </div>
                 )}
 
-                {/* Recursive Nested Replies - Vertical Line Style */}
+                {/* Recursive Nested Replies */}
                 {comment.replies && comment.replies.length > 0 && (
                     <div className="mt-2 pl-3 border-l-2 border-gray-100">
                         {comment.replies.map((reply) => (
@@ -186,25 +282,15 @@ const CommentItem = ({ comment, postId, postAuthorId, onUpdateComments }) => {
                 )}
             </div>
 
-            {/* Delete Confirmation Modal for Comment */}
+            {/* Delete Confirmation Modal */}
             {showDeleteModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
                     <div className="bg-[#232330] rounded-xl p-6 w-full max-w-sm mx-4 shadow-2xl border border-[#2D2D3B] animate-in fade-in zoom-in duration-200">
                         <h3 className="text-lg font-bold text-white mb-2">Delete Comment?</h3>
                         <p className="text-gray-400 text-sm mb-6">This action cannot be undone.</p>
                         <div className="flex justify-end gap-3">
-                            <button
-                                onClick={() => setShowDeleteModal(false)}
-                                className="px-4 py-2 text-sm text-gray-400 hover:bg-[#2A2A3A] hover:text-white rounded-lg font-medium transition-colors border border-[#2D2D3B]"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={confirmDelete}
-                                className="px-4 py-2 text-sm bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors"
-                            >
-                                Delete
-                            </button>
+                            <button onClick={() => setShowDeleteModal(false)} className="px-4 py-2 text-sm text-gray-400 hover:bg-[#2A2A3A] hover:text-white rounded-lg font-medium transition-colors border border-[#2D2D3B]">Cancel</button>
+                            <button onClick={confirmDelete} className="px-4 py-2 text-sm bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors">Delete</button>
                         </div>
                     </div>
                 </div>
@@ -213,10 +299,13 @@ const CommentItem = ({ comment, postId, postAuthorId, onUpdateComments }) => {
     );
 };
 
+
 const Post = ({ post, onPostUpdated, onPostDeleted }) => {
     const [showComments, setShowComments] = useState(false);
     const [commentText, setCommentText] = useState('');
     const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+    const [isValidatingComment, setIsValidatingComment] = useState(false);
+    const [commentModerationWarning, setCommentModerationWarning] = useState(null); // { suggested, original }
 
     // Menu & Edit State
     const [showMenu, setShowMenu] = useState(false);
@@ -258,9 +347,29 @@ const Post = ({ post, onPostUpdated, onPostDeleted }) => {
         e.preventDefault();
         if (!commentText.trim()) return;
 
+        setIsValidatingComment(true);
+        try {
+            const result = await validateCommentText(commentText);
+            if (!result.safe) {
+                setCommentModerationWarning({ suggested: result.moderatedText, original: commentText });
+                setIsValidatingComment(false);
+                return;
+            }
+        } catch (_) { /* fail open */ }
+        setIsValidatingComment(false);
+        await submitComment(commentText, null);
+    };
+
+    const handleCommentAcceptModeration = async () => {
+        const { suggested, original } = commentModerationWarning;
+        setCommentModerationWarning(null);
+        await submitComment(suggested, original);
+    };
+
+    const submitComment = async (text, originalToxicText) => {
         setIsSubmittingComment(true);
         try {
-            const updatedComments = await commentPost(post._id, commentText);
+            const updatedComments = await commentPost(post._id, text, originalToxicText);
             onPostUpdated({ ...post, comments: updatedComments });
             setCommentText('');
         } catch (error) {
@@ -464,35 +573,53 @@ const Post = ({ post, onPostUpdated, onPostDeleted }) => {
             {/* Comments Section */}
             {showComments && (
                 <div className="mt-4 pt-0">
-                    <form onSubmit={handleComment} className="flex items-center gap-3 mb-6 mt-2 relative">
-                        {currentUser?.profilePic ? (
-                            <img src={currentUser.profilePic} alt="" className="w-8 h-8 rounded-full object-cover ring-1 ring-gray-100" />
-                        ) : (
-                            <div className="w-8 h-8 rounded-full bg-[#2A2A3A] flex items-center justify-center text-gray-400 text-xs font-bold">
-                                {currentUser?.name?.[0]}
+                    <div className="mb-6 mt-2">
+                        <form onSubmit={handleComment} className="flex items-center gap-3 relative">
+                            {currentUser?.profilePic ? (
+                                <img src={currentUser.profilePic} alt="" className="w-8 h-8 rounded-full object-cover ring-1 ring-gray-100" />
+                            ) : (
+                                <div className="w-8 h-8 rounded-full bg-[#2A2A3A] flex items-center justify-center text-gray-400 text-xs font-bold">
+                                    {currentUser?.name?.[0]}
+                                </div>
+                            )}
+                            <div className="flex-1 relative">
+                                <input
+                                    type="text"
+                                    value={commentText}
+                                    onChange={(e) => setCommentText(e.target.value)}
+                                    placeholder="Write a comment..."
+                                    className="w-full bg-[#1A1A24] text-white border border-transparent hover:border-[#2D2D3B] focus:border-[#8E54E9] rounded-full pl-4 pr-12 py-2.5 text-sm focus:outline-none focus:ring-0 transition-colors placeholder-gray-500"
+                                />
+                                {commentText.trim() && (
+                                    <button
+                                        type="submit"
+                                        disabled={isSubmittingComment || isValidatingComment}
+                                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 p-1.5 rounded-full hover:bg-[#2A2A3A] hover:text-white transition-colors disabled:opacity-50"
+                                    >
+                                        {isValidatingComment ? (
+                                            <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                                        ) : (
+                                            <svg className="w-4 h-4 transform rotate-90" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+                                            </svg>
+                                        )}
+                                    </button>
+                                )}
+                            </div>
+                        </form>
+
+                        {/* Comment Moderation Warning Banner */}
+                        {commentModerationWarning && (
+                            <div className="mt-2 ml-11">
+                                <ModerationWarning
+                                    suggestedText={commentModerationWarning.suggested}
+                                    onSuggestedTextChange={(val) => setCommentModerationWarning(prev => ({ ...prev, suggested: val }))}
+                                    onAccept={handleCommentAcceptModeration}
+                                    onCancel={() => { setCommentModerationWarning(null); setCommentText(''); }}
+                                />
                             </div>
                         )}
-                        <div className="flex-1 relative">
-                            <input
-                                type="text"
-                                value={commentText}
-                                onChange={(e) => setCommentText(e.target.value)}
-                                placeholder="Write a comment..."
-                                className="w-full bg-[#1A1A24] text-white border border-transparent hover:border-[#2D2D3B] focus:border-[#8E54E9] rounded-full pl-4 pr-12 py-2.5 text-sm focus:outline-none focus:ring-0 transition-colors placeholder-gray-500"
-                            />
-                            {commentText.trim() && (
-                                <button
-                                    type="submit"
-                                    disabled={isSubmittingComment}
-                                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 p-1.5 rounded-full hover:bg-[#2A2A3A] hover:text-white transition-colors disabled:opacity-50"
-                                >
-                                    <svg className="w-4 h-4 transform rotate-90" fill="currentColor" viewBox="0 0 20 20">
-                                        <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
-                                    </svg>
-                                </button>
-                            )}
-                        </div>
-                    </form>
+                    </div>
 
                     <div className="space-y-4">
                         {post.comments.map((comment) => (
@@ -507,6 +634,7 @@ const Post = ({ post, onPostUpdated, onPostDeleted }) => {
                     </div>
                 </div>
             )}
+
         </div>
     );
 };

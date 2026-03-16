@@ -65,6 +65,16 @@ export const getModerationLogs = async () => {
   return res.data;
 };
 
+export const getCommentModerationLogs = async () => {
+  const res = await api.get("/api/posts/comment-moderated-logs");
+  return res.data;
+};
+
+export const validateCommentText = async (text) => {
+  const res = await api.post("/api/posts/validate-text", { content: text });
+  return res.data;
+};
+
 export const getFeedPosts = async () => {
   const res = await api.get("/api/posts/feed");
   return res.data;
@@ -85,8 +95,10 @@ export const likePost = async (id) => {
   return res.data;
 };
 
-export const commentPost = async (id, text) => {
-  const res = await api.post(`/api/posts/${id}/comment`, { text });
+export const commentPost = async (id, text, originalToxicText = null) => {
+  const body = { text };
+  if (originalToxicText) body.originalToxicText = originalToxicText;
+  const res = await api.post(`/api/posts/${id}/comment`, body);
   return res.data;
 };
 
@@ -100,13 +112,17 @@ export const deletePost = async (id) => {
   return res.data;
 };
 
-export const replyToComment = async (postId, commentId, text) => {
-  const res = await api.post(`/api/posts/${postId}/comments/${commentId}/reply`, { text });
+export const replyToComment = async (postId, commentId, text, originalToxicText = null) => {
+  const body = { text };
+  if (originalToxicText) body.originalToxicText = originalToxicText;
+  const res = await api.post(`/api/posts/${postId}/comments/${commentId}/reply`, body);
   return res.data;
 };
 
-export const editComment = async (postId, commentId, text) => {
-  const res = await api.put(`/api/posts/${postId}/comments/${commentId}`, { text });
+export const editComment = async (postId, commentId, text, originalToxicText = null) => {
+  const body = { text };
+  if (originalToxicText) body.originalToxicText = originalToxicText;
+  const res = await api.put(`/api/posts/${postId}/comments/${commentId}`, body);
   return res.data;
 };
 

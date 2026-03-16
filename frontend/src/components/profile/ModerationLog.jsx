@@ -1,27 +1,90 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getModerationLogs } from '../../api/api';
+import { getModerationLogs, getCommentModerationLogs } from '../../api/api';
 import { formatDistanceToNow } from 'date-fns';
 
+const LogTable = ({ logs, isLoading, error, emptyMessage, columns }) => {
+    if (isLoading) return (
+        <div className="flex justify-center p-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
+        </div>
+    );
+    if (error) return (
+        <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl">{error}</div>
+    );
+    if (logs.length === 0) return (
+        <div className="text-center p-10 border border-slate-700 border-dashed rounded-xl bg-slate-800/50">
+            <svg className="w-10 h-10 text-slate-500 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p className="text-slate-400 font-medium">{emptyMessage}</p>
+            <p className="text-slate-500 text-sm mt-1">Keep it clean — you're all good!</p>
+        </div>
+    );
+    return (
+        <div className="overflow-x-auto rounded-xl border border-slate-700">
+            <table className="w-full text-left text-sm text-slate-300">
+                <thead className="text-xs text-slate-400 uppercase bg-slate-700/60">
+                    <tr>
+                        {columns.map((col) => (
+                            <th key={col} className="px-4 py-3">{col}</th>
+                        ))}
+                    </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-700/60">
+                    {logs.map((log) => (
+                        <tr key={log._id} className="hover:bg-slate-700/20 transition-colors">
+                            <td className="px-4 py-4 whitespace-nowrap text-slate-400 text-xs">
+                                {formatDistanceToNow(new Date(log.createdAt), { addSuffix: true })}
+                            </td>
+                            <td className="px-4 py-4 max-w-[240px] truncate text-red-400 font-medium cursor-help" title={log.originalContent || log.originalText}>
+                                {log.originalContent || log.originalText || 'N/A'}
+                            </td>
+                            <td className="px-4 py-4 max-w-[240px] truncate text-emerald-400 cursor-help" title={log.content || log.text}>
+                                {log.content || log.text}
+                            </td>
+                            {log.type !== undefined && (
+                                <td className="px-4 py-4">
+                                    <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${log.type === 'reply' ? 'bg-purple-500/15 text-purple-400' : 'bg-blue-500/15 text-blue-400'}`}>
+                                        {log.type}
+                                    </span>
+                                </td>
+                            )}
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        </div>
+    );
+};
+
+const TABS = [
+    { id: 'posts', label: 'Posts', icon: '📄' },
+    { id: 'comments', label: 'Comments & Replies', icon: '💬' },
+];
+
 const ModerationLog = () => {
-    const [logs, setLogs] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState(null);
     const navigate = useNavigate();
+    const [activeTab, setActiveTab] = useState('posts');
+
+    const [postLogs, setPostLogs] = useState([]);
+    const [postLoading, setPostLoading] = useState(true);
+    const [postError, setPostError] = useState(null);
+
+    const [commentLogs, setCommentLogs] = useState([]);
+    const [commentLoading, setCommentLoading] = useState(true);
+    const [commentError, setCommentError] = useState(null);
 
     useEffect(() => {
-        const fetchLogs = async () => {
-            try {
-                const data = await getModerationLogs();
-                setLogs(data);
-            } catch (err) {
-                console.error('Error fetching logs:', err);
-                setError('Failed to load moderation history.');
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        fetchLogs();
+        getModerationLogs()
+            .then(setPostLogs)
+            .catch(() => setPostError('Failed to load post moderation history.'))
+            .finally(() => setPostLoading(false));
+
+        getCommentModerationLogs()
+            .then(setCommentLogs)
+            .catch(() => setCommentError('Failed to load comment moderation history.'))
+            .finally(() => setCommentLoading(false));
     }, []);
 
     return (
@@ -47,63 +110,49 @@ const ModerationLog = () => {
                                 </svg>
                                 AI Moderation Log
                             </h2>
-                            <p className="mt-0.5 text-sm text-slate-400">
-                                Posts that were automatically moderated by our AI system.
-                            </p>
+                            <p className="mt-0.5 text-sm text-slate-400">Content automatically moderated by our AI system.</p>
                         </div>
+                    </div>
+
+                    {/* Tabs */}
+                    <div className="flex border-b border-slate-700 px-6">
+                        {TABS.map((tab) => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id)}
+                                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors duration-200 -mb-px
+                                    ${activeTab === tab.id
+                                        ? 'border-indigo-500 text-indigo-400'
+                                        : 'border-transparent text-slate-400 hover:text-slate-200'
+                                    }`}
+                            >
+                                <span>{tab.icon}</span>
+                                <span>{tab.label}</span>
+                                <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${activeTab === tab.id ? 'bg-indigo-500/20 text-indigo-400' : 'bg-slate-700 text-slate-500'}`}>
+                                    {tab.id === 'posts' ? postLogs.length : commentLogs.length}
+                                </span>
+                            </button>
+                        ))}
                     </div>
 
                     {/* Content */}
                     <div className="p-6">
-                        {isLoading ? (
-                            <div className="flex justify-center p-8">
-                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
-                            </div>
-                        ) : error ? (
-                            <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl">
-                                {error}
-                            </div>
-                        ) : logs.length === 0 ? (
-                            <div className="text-center p-10 border border-slate-700 border-dashed rounded-xl bg-slate-800/50">
-                                <svg className="w-10 h-10 text-slate-500 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                <p className="text-slate-400 font-medium">No moderation logs found</p>
-                                <p className="text-slate-500 text-sm mt-1">Your posts are clean — you're all good!</p>
-                            </div>
+                        {activeTab === 'posts' ? (
+                            <LogTable
+                                logs={postLogs}
+                                isLoading={postLoading}
+                                error={postError}
+                                emptyMessage="No moderated posts found."
+                                columns={['Date / Time', 'Original (Blocked)', 'Cleaned & Published']}
+                            />
                         ) : (
-                            <div className="overflow-x-auto rounded-xl border border-slate-700">
-                                <table className="w-full text-left text-sm text-slate-300">
-                                    <thead className="text-xs text-slate-400 uppercase bg-slate-700/60">
-                                        <tr>
-                                            <th className="px-4 py-3 rounded-tl-xl">Date / Time</th>
-                                            <th className="px-4 py-3">Original (Blocked)</th>
-                                            <th className="px-4 py-3 rounded-tr-xl">Cleaned &amp; Published</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-700/60">
-                                        {logs.map((log) => (
-                                            <tr key={log._id} className="hover:bg-slate-700/20 transition-colors">
-                                                <td className="px-4 py-4 whitespace-nowrap text-slate-400 text-xs">
-                                                    {formatDistanceToNow(new Date(log.createdAt), { addSuffix: true })}
-                                                </td>
-                                                <td
-                                                    className="px-4 py-4 max-w-[260px] truncate text-red-400 font-medium cursor-help"
-                                                    title={log.originalContent}
-                                                >
-                                                    {log.originalContent || 'N/A'}
-                                                </td>
-                                                <td
-                                                    className="px-4 py-4 max-w-[260px] truncate text-emerald-400 cursor-help"
-                                                    title={log.content}
-                                                >
-                                                    {log.content}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
+                            <LogTable
+                                logs={commentLogs}
+                                isLoading={commentLoading}
+                                error={commentError}
+                                emptyMessage="No moderated comments or replies found."
+                                columns={['Date / Time', 'Original (Blocked)', 'Cleaned & Published', 'Type']}
+                            />
                         )}
                     </div>
                 </div>
@@ -113,3 +162,5 @@ const ModerationLog = () => {
 };
 
 export default ModerationLog;
+
+

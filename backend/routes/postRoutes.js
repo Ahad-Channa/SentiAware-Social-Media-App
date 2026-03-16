@@ -14,6 +14,7 @@ import {
   getPostById,
   validateText,
   getModerationLogs,
+  getCommentModerationLogs,
 } from "../controllers/postController.js";
 import protect from "../middleware/authMiddleware.js";
 import upload from "../middleware/uploadMiddleware.js";
@@ -22,6 +23,7 @@ const router = express.Router();
 
 router.post("/validate-text", protect, validateText);
 router.get("/moderated-logs", protect, getModerationLogs);
+router.get("/comment-moderated-logs", protect, getCommentModerationLogs);
 router.post("/", protect, upload.single("image"), createPost);
 router.get("/feed", protect, getFeedPosts);
 router.get("/user/:userId", protect, getUserPosts);

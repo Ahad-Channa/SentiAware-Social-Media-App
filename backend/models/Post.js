@@ -22,6 +22,14 @@ const commentSchema = new mongoose.Schema({
         type: Boolean,
         default: false,
     },
+    // Moderation fields
+    isModerated: {
+        type: Boolean,
+        default: false,
+    },
+    originalText: {
+        type: String, // Original toxic text before AI cleanup
+    },
 });
 
 // Add recursive replies field
