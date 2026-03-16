@@ -55,6 +55,11 @@ export const createPost = async (formData) => {
   return res.data;
 };
 
+export const validatePostText = async (content) => {
+  const res = await api.post("/api/posts/validate-text", { content });
+  return res.data;
+};
+
 export const getFeedPosts = async () => {
   const res = await api.get("/api/posts/feed");
   return res.data;

@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { createPost } from '../../api/api';
+import { createPost, validatePostText } from '../../api/api';
 
 const CreatePost = () => {
   const navigate = useNavigate();
@@ -11,6 +11,10 @@ const CreatePost = () => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isValidating, setIsValidating] = useState(false);
+  const [showSuggestionUI, setShowSuggestionUI] = useState(false);
+  const [suggestedText, setSuggestedText] = useState('');
+  const [originalText, setOriginalText] = useState('');
   const fileInputRef = useRef(null);
 
   const handleImageSelect = (e) => {
@@ -36,6 +40,42 @@ const CreatePost = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!postContent.trim() && !selectedImage) return;
+
+    // AI Toxicity Validation Flow (only for text)
+    if (postContent.trim() && !showSuggestionUI) {
+      setIsValidating(true);
+      try {
+        const result = await validatePostText(postContent);
+        if (!result.safe) {
+          setOriginalText(postContent);
+          setPostContent(result.moderatedText);
+          setSuggestedText(result.moderatedText);
+          setShowSuggestionUI(true);
+          setIsValidating(false);
+          return; // Stop flow and let user review the suggestion
+        }
+      } catch (error) {
+        console.error("Error validating text:", error);
+        // If validation fails, proceed to normal post creation so we don't block users if AI is down
+      }
+      setIsValidating(false);
+    } else if (showSuggestionUI) {
+      // User clicked "Accept & Publish"
+      // Re-validate to ensure they didn't add toxic text back
+      setIsValidating(true);
+      try {
+        const result = await validatePostText(postContent);
+        if (!result.safe) {
+          setPostContent(result.moderatedText);
+          setSuggestedText(result.moderatedText);
+          setIsValidating(false);
+          return; // Show new suggestion
+        }
+      } catch (error) {
+        console.error("Error re-validating text:", error);
+      }
+      setIsValidating(false);
+    }
 
     setIsSubmitting(true);
     try {
@@ -89,10 +129,34 @@ const CreatePost = () => {
             </div>
           </div>
 
+          {/* Validation Suggestion Banner */}
+          {showSuggestionUI && (
+            <div className="mb-4 p-4 bg-orange-500/10 border border-orange-500/20 rounded-xl relative">
+              <div className="flex items-start gap-3">
+                <svg className="w-5 h-5 text-orange-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                <div>
+                  <h3 className="text-sm font-semibold text-orange-400 mb-1">Content Warning</h3>
+                  <p className="text-sm text-slate-300 mb-2">
+                    Your post contains language that violates our community guidelines. We've suggested a safer version below. You can edit it or publish as is.
+                  </p>
+                  <button 
+                    onClick={() => {
+                        setPostContent(originalText);
+                        setShowSuggestionUI(false);
+                    }}
+                    className="text-xs text-slate-400 hover:text-slate-200 transition-colors underline"
+                  >
+                    Cancel and revert my text
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Input Area */}
           <div className="mb-6">
             <textarea
-              className="w-full min-h-[150px] text-lg text-slate-100 placeholder-slate-500 border-none focus:ring-0 resize-none bg-transparent p-0 leading-relaxed"
+              className="w-full min-h-[150px] text-lg text-slate-100 placeholder-slate-500 border-none outline-none focus:outline-none focus:ring-0 active:outline-none resize-none bg-transparent p-0 leading-relaxed"
               placeholder="What's happening?"
               value={postContent}
               onChange={(e) => setPostContent(e.target.value)}
@@ -138,14 +202,14 @@ const CreatePost = () => {
             {/* Submit Button */}
             <button
               onClick={handleSubmit}
-              disabled={isSubmitting || (!postContent.trim() && !selectedImage)}
+              disabled={isSubmitting || isValidating || (!postContent.trim() && !selectedImage)}
               className={`px-6 py-2.5 rounded-full font-bold text-sm transition-all shadow-sm flex items-center gap-2
-                    ${isSubmitting || (!postContent.trim() && !selectedImage)
+                    ${isSubmitting || isValidating || (!postContent.trim() && !selectedImage)
                   ? 'bg-slate-700 text-slate-500 cursor-not-allowed'
                   : 'bg-white text-slate-900 hover:bg-slate-200 hover:shadow-md'
                 }`}
             >
-              <span>{isSubmitting ? 'Publishing...' : 'Post'}</span>
+              <span>{isValidating ? 'Validating...' : isSubmitting ? 'Publishing...' : showSuggestionUI ? 'Accept & Publish' : 'Post'}</span>
             </button>
           </div>
 

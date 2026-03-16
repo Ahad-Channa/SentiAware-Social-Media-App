@@ -52,6 +52,24 @@ export const createPost = async (req, res) => {
     }
 };
 
+// @desc    Validate text for toxicity before creating post
+// @route   POST /api/posts/validate-text
+// @access  Private
+export const validateText = async (req, res) => {
+    try {
+        const { content } = req.body;
+        if (!content) {
+            return res.status(400).json({ message: "Content is required" });
+        }
+
+        const moderationResult = await analyzeText(content);
+        res.json(moderationResult);
+    } catch (error) {
+        console.error("Error validating text:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
 // @desc    Get all posts (Feed: Friends + Suggestions Shuffled)
 // @route   GET /api/posts/feed
 // @access  Private
@@ -60,8 +78,8 @@ export const getFeedPosts = async (req, res) => {
         const currentUser = await User.findById(req.user._id);
         const friendIds = currentUser.friends;
 
-        // 1. Get recent posts from friends (Priority)
-        const friendPosts = await Post.find({ author: { $in: friendIds } })
+        // 1. Get recent posts from friends and user (Priority)
+        const friendPosts = await Post.find({ author: { $in: [...friendIds, req.user._id] } })
             .sort({ createdAt: -1 })
             .limit(20)
             .populate("author", "name profilePic")
