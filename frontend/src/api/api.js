@@ -141,4 +141,16 @@ export const sendFriendRequest = async (id) => {
   return res.data;
 };
 
+// --- Chat Moderation API ---
+
+export const toggleChatModeration = async (conversationId) => {
+  const res = await api.put(`/api/messages/moderation/${conversationId}`);
+  return res.data;
+};
+
+export const getMessageModerationLogs = async () => {
+  const res = await api.get("/api/messages/moderation-logs");
+  return res.data;
+};
+
 export default api;

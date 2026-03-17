@@ -1,10 +1,11 @@
 import Message from "../models/Message.js";
 import Conversation from "../models/Conversation.js";
 import { getReceiverSocketId, io } from "../socket/socket.js";
+import { analyzeText } from "../services/moderationService.js";
 
 export const sendMessage = async (req, res) => {
     try {
-        const { message } = req.body;
+        const { message, originalToxicMessage } = req.body;
         const { id: receiverId } = req.params;
         const senderId = req.user._id;
 
@@ -22,10 +23,28 @@ export const sendMessage = async (req, res) => {
             });
         }
 
+        // --- Moderation Gate ---
+        // Only runs when moderation is enabled AND user hasn't already accepted the warning
+        if (conversation.isModerationEnabled && !originalToxicMessage) {
+            const moderationResult = await analyzeText(message);
+            if (!moderationResult.safe) {
+                // Return 202 — message is NOT saved yet. Frontend shows warning banner.
+                return res.status(202).json({
+                    isToxic: true,
+                    moderatedText: moderationResult.moderatedText,
+                    originalText: message,
+                });
+            }
+        }
+
+        // Build the message — use cleaned text if user accepted warning
+        const isModerated = !!originalToxicMessage;
         const newMessage = new Message({
             sender: senderId,
             receiver: receiverId,
-            message,
+            message: isModerated ? message : message, // cleaned text passed as `message` from frontend
+            isModerated,
+            originalMessage: isModerated ? originalToxicMessage : undefined,
         });
 
         if (newMessage) {
@@ -33,10 +52,8 @@ export const sendMessage = async (req, res) => {
             conversation.lastMessage = newMessage._id;
         }
 
-        // This will run in parallel
         await Promise.all([conversation.save(), newMessage.save()]);
 
-        // Populate sender info if needed, though usually socket handles basic stuff
         const populatedMessage = await Message.findById(newMessage._id).populate("sender", "name profilePicture");
 
         // SOCKET.IO FUNCTIONALITY
@@ -295,6 +312,72 @@ export const getUnreadConversationsCount = async (req, res) => {
         res.status(200).json({ count: unreadCount });
     } catch (error) {
         console.log("Error in getUnreadConversationsCount controller: ", error.message);
+        res.status(500).json({ error: "Internal server error" });
+    }
+};
+
+export const toggleModeration = async (req, res) => {
+    try {
+        const { id: conversationId } = req.params;
+        const userId = req.user._id;
+
+        const conversation = await Conversation.findById(conversationId);
+
+        if (!conversation) {
+            return res.status(404).json({ message: "Conversation not found" });
+        }
+
+        // Verify user is a participant
+        const isParticipant = conversation.participants.some(
+            (p) => p.toString() === userId.toString()
+        );
+        if (!isParticipant) {
+            return res.status(403).json({ message: "Unauthorized" });
+        }
+
+        conversation.isModerationEnabled = !conversation.isModerationEnabled;
+        await conversation.save();
+
+        // SOCKET.IO: Notify the other participant
+        const otherParticipantId = conversation.participants.find(
+            (p) => p.toString() !== userId.toString()
+        );
+
+        if (otherParticipantId) {
+            const receiverSocketId = getReceiverSocketId(otherParticipantId.toString());
+            if (receiverSocketId) {
+                io.to(receiverSocketId).emit("moderationToggled", {
+                    conversationId: conversation._id,
+                    isModerationEnabled: conversation.isModerationEnabled
+                });
+            }
+        }
+
+        res.status(200).json({
+            isModerationEnabled: conversation.isModerationEnabled,
+            conversationId: conversation._id,
+        });
+    } catch (error) {
+        console.log("Error in toggleModeration controller: ", error.message);
+        res.status(500).json({ error: "Internal server error" });
+    }
+};
+
+export const getMessageModerationLogs = async (req, res) => {
+    try {
+        const userId = req.user._id;
+
+        const logs = await Message.find({
+            sender: userId,
+            isModerated: true,
+        })
+            .sort({ createdAt: -1 })
+            .populate("sender", "name profilePicture")
+            .populate("receiver", "name profilePicture");
+
+        res.status(200).json(logs);
+    } catch (error) {
+        console.log("Error in getMessageModerationLogs controller: ", error.message);
         res.status(500).json({ error: "Internal server error" });
     }
 };

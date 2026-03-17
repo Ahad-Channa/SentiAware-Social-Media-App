@@ -1,10 +1,26 @@
 import React, { useState } from "react";
 import { useSocketContext } from "../../context/SocketContext";
+import { toggleChatModeration } from "../../api/api";
 
-const ConversationList = ({ friends, selectedChat, setSelectedChat, onDeleteChat }) => {
+const ConversationList = ({ friends, selectedChat, setSelectedChat, onDeleteChat, onToggleModeration }) => {
     const { onlineUsers } = useSocketContext();
     const [openDropdownId, setOpenDropdownId] = useState(null);
     const [chatToDelete, setChatToDelete] = useState(null);
+    const [togglingId, setTogglingId] = useState(null);
+
+    const handleToggleModeration = async (e, friend) => {
+        e.stopPropagation();
+        if (!friend.conversationId) return;
+        setTogglingId(friend._id);
+        try {
+            const res = await toggleChatModeration(friend.conversationId);
+            onToggleModeration(friend.conversationId, res.isModerationEnabled);
+        } catch (error) {
+            console.error("Failed to toggle moderation", error);
+        } finally {
+            setTogglingId(null);
+        }
+    };
 
     return (
         <div className="flex flex-col h-full">
@@ -20,6 +36,7 @@ const ConversationList = ({ friends, selectedChat, setSelectedChat, onDeleteChat
                         const isOnline = onlineUsers.includes(friend._id);
                         const isSelected = selectedChat?._id === friend._id;
                         const unreadCount = friend.unreadCount || 0;
+                        const isModerated = friend.isModerationEnabled || false;
 
                         return (
                             <div
@@ -46,7 +63,12 @@ const ConversationList = ({ friends, selectedChat, setSelectedChat, onDeleteChat
                                 </div>
 
                                 <div className="flex-1 min-w-0">
-                                    <h3 className={`font-medium truncate ${unreadCount > 0 ? "text-white font-bold" : "text-white"}`}>{friend.name}</h3>
+                                    <div className="flex items-center gap-1.5">
+                                        <h3 className={`font-medium truncate ${unreadCount > 0 ? "text-white font-bold" : "text-white"}`}>{friend.name}</h3>
+                                        {isModerated && (
+                                            <span title="AI Moderation ON" className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-500/20 text-purple-400 font-medium flex-shrink-0">🛡️</span>
+                                        )}
+                                    </div>
                                     <p className={`text-sm truncate ${unreadCount > 0 ? "text-gray-300 font-medium" : "text-gray-400"}`}>
                                         {friend.lastMessage ? friend.lastMessage.message : `@${friend.nickname || friend.email?.split('@')[0] || "user"}`}
                                     </p>
@@ -60,7 +82,7 @@ const ConversationList = ({ friends, selectedChat, setSelectedChat, onDeleteChat
                                     </div>
                                 )}
 
-                                {/* Delete Chat Options */}
+                                {/* Chat Options Dropdown */}
                                 <div className="relative ml-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                                     <button
                                         onClick={() => setOpenDropdownId(openDropdownId === friend._id ? null : friend._id)}
@@ -72,7 +94,25 @@ const ConversationList = ({ friends, selectedChat, setSelectedChat, onDeleteChat
                                     </button>
 
                                     {openDropdownId === friend._id && (
-                                        <div className="absolute right-0 top-full mt-1 z-20 w-32 bg-[#232330] border border-[#2D2D3B] rounded-lg shadow-xl overflow-hidden">
+                                        <div className="absolute right-0 top-full mt-1 z-20 w-52 bg-[#232330] border border-[#2D2D3B] rounded-lg shadow-xl overflow-hidden">
+                                            {/* Moderation Toggle */}
+                                            {friend.conversationId && (
+                                                <button
+                                                    onClick={(e) => handleToggleModeration(e, friend)}
+                                                    disabled={togglingId === friend._id}
+                                                    className="w-full flex items-center justify-between px-4 py-3 text-sm text-gray-300 hover:bg-[#2D2D3B] hover:text-white transition-colors border-b border-[#2D2D3B]"
+                                                >
+                                                    <span className="flex items-center gap-2">
+                                                        <span>🛡️</span>
+                                                        <span>Moderate Messages</span>
+                                                    </span>
+                                                    {/* Toggle Switch */}
+                                                    <div className={`relative w-9 h-5 rounded-full transition-colors duration-200 ${isModerated ? "bg-[#8E54E9]" : "bg-[#3D3D4E]"}`}>
+                                                        <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 ${isModerated ? "translate-x-4" : "translate-x-0.5"}`} />
+                                                    </div>
+                                                </button>
+                                            )}
+                                            {/* Delete Chat */}
                                             <button
                                                 onClick={() => {
                                                     setOpenDropdownId(null);
@@ -90,7 +130,7 @@ const ConversationList = ({ friends, selectedChat, setSelectedChat, onDeleteChat
                     })
                 )}
             </div>
-            {/* Delete Chat Modal Overlay */}
+            {/* Delete Chat Modal */}
             {chatToDelete && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm p-4">
                     <div className="bg-[#232330] border border-[#2D2D3B] p-6 rounded-2xl shadow-2xl max-w-sm w-full mx-auto" onClick={(e) => e.stopPropagation()}>

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getModerationLogs, getCommentModerationLogs } from '../../api/api';
+import { getModerationLogs, getCommentModerationLogs, getMessageModerationLogs } from '../../api/api';
 import { formatDistanceToNow } from 'date-fns';
 
 const LogTable = ({ logs, isLoading, error, emptyMessage, columns }) => {
@@ -61,6 +61,7 @@ const LogTable = ({ logs, isLoading, error, emptyMessage, columns }) => {
 const TABS = [
     { id: 'posts', label: 'Posts', icon: '📄' },
     { id: 'comments', label: 'Comments & Replies', icon: '💬' },
+    { id: 'messages', label: 'Messages', icon: '✉️' },
 ];
 
 const ModerationLog = () => {
@@ -75,6 +76,10 @@ const ModerationLog = () => {
     const [commentLoading, setCommentLoading] = useState(true);
     const [commentError, setCommentError] = useState(null);
 
+    const [messageLogs, setMessageLogs] = useState([]);
+    const [messageLoading, setMessageLoading] = useState(true);
+    const [messageError, setMessageError] = useState(null);
+
     useEffect(() => {
         getModerationLogs()
             .then(setPostLogs)
@@ -85,6 +90,16 @@ const ModerationLog = () => {
             .then(setCommentLogs)
             .catch(() => setCommentError('Failed to load comment moderation history.'))
             .finally(() => setCommentLoading(false));
+
+        getMessageModerationLogs()
+            .then(data => setMessageLogs(data.map(m => ({
+                _id: m._id,
+                originalText: m.originalMessage || 'N/A',
+                text: m.message,
+                createdAt: m.createdAt,
+            }))))
+            .catch(() => setMessageError('Failed to load message moderation history.'))
+            .finally(() => setMessageLoading(false));
     }, []);
 
     return (
@@ -129,7 +144,7 @@ const ModerationLog = () => {
                                 <span>{tab.icon}</span>
                                 <span>{tab.label}</span>
                                 <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${activeTab === tab.id ? 'bg-indigo-500/20 text-indigo-400' : 'bg-slate-700 text-slate-500'}`}>
-                                    {tab.id === 'posts' ? postLogs.length : commentLogs.length}
+                                    {tab.id === 'posts' ? postLogs.length : tab.id === 'comments' ? commentLogs.length : messageLogs.length}
                                 </span>
                             </button>
                         ))}
@@ -145,13 +160,21 @@ const ModerationLog = () => {
                                 emptyMessage="No moderated posts found."
                                 columns={['Date / Time', 'Original (Blocked)', 'Cleaned & Published']}
                             />
-                        ) : (
+                        ) : activeTab === 'comments' ? (
                             <LogTable
                                 logs={commentLogs}
                                 isLoading={commentLoading}
                                 error={commentError}
                                 emptyMessage="No moderated comments or replies found."
                                 columns={['Date / Time', 'Original (Blocked)', 'Cleaned & Published', 'Type']}
+                            />
+                        ) : (
+                            <LogTable
+                                logs={messageLogs}
+                                isLoading={messageLoading}
+                                error={messageError}
+                                emptyMessage="No moderated messages found."
+                                columns={['Date / Time', 'Original (Toxic)', 'Cleaned & Sent']}
                             />
                         )}
                     </div>

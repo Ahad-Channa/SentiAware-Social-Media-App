@@ -4,13 +4,18 @@ import { useSocketContext } from "../../context/SocketContext";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 
-const ChatWindow = ({ selectedChat, setSelectedChat, currentUser, onMessageSent }) => {
+const ChatWindow = ({ selectedChat, setSelectedChat, currentUser, onMessageSent, isModerationEnabled }) => {
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState("");
     const [loading, setLoading] = useState(false);
     const [editingMessageId, setEditingMessageId] = useState(null);
     const [editMessageText, setEditMessageText] = useState("");
     const [openDropdownId, setOpenDropdownId] = useState(null);
+
+    // Moderation warning state
+    const [toxicWarning, setToxicWarning] = useState(null); // { moderatedText, originalText }
+    const [isSending, setIsSending] = useState(false);
+
     const messagesEndRef = useRef(null);
     const { socket } = useSocketContext();
     const navigate = useNavigate();
@@ -61,26 +66,96 @@ const ChatWindow = ({ selectedChat, setSelectedChat, currentUser, onMessageSent 
         };
     }, [socket, selectedChat]);
 
+    // Scroll to bottom whenever messages change. 
+    // If it's the initial load or a lot of messages, use "auto" (instant) to prevent the jarring scroll from the top.
+    // If we're just adding a new message (length changed by 1), use "smooth".
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages]);
+        // Find if this is a small increment (like 1 new message) or a big change (initial load)
+        // A simple heuristic for now: smooth scroll only after initial load is done.
+        // The most robust way is to just use 'auto' on initial load and 'smooth' on subsequent additions.
+        // We'll use a ref to track if it's the first scroll for these messages.
+        messagesEndRef.current?.scrollIntoView({ behavior: loading ? "auto" : "smooth" });
+    }, [messages, loading]);
+
+    // An even better approach: Instant scroll when selectedChat changes, smooth otherwise.
+    // Also, we only want to scroll if the actual number of messages changes (new message arrives/sent)
+    // or if the chat is first opened. We don't want to scroll when just toggling moderation.
+    const isFirstRender = useRef(true);
+    const prevMessagesLength = useRef(0);
+
+    useEffect(() => {
+        if (isFirstRender.current) {
+            messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
+            isFirstRender.current = false;
+            prevMessagesLength.current = messages.length;
+        } else if (messages.length !== prevMessagesLength.current) {
+            // Only smooth scroll if the number of messages actually changed
+            messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+            prevMessagesLength.current = messages.length;
+        }
+    }, [messages.length]); // Depend on length instead of the array reference
+
+    // Reset the first render flag when the chat changes so it instantly jumps to the bottom
+    useEffect(() => {
+        isFirstRender.current = true;
+    }, [selectedChat?._id]);
+    const sendMessageToServer = async (messageText, originalToxicMessage = null) => {
+        const body = { message: messageText };
+        if (originalToxicMessage) body.originalToxicMessage = originalToxicMessage;
+
+        const res = await api.post(`/api/messages/send/${selectedChat._id}`, body);
+        return res;
+    };
 
     const handleSendMessage = async (e) => {
         e.preventDefault();
-        if (!newMessage.trim()) return;
+        if (!newMessage.trim() || isSending) return;
 
+        setIsSending(true);
         try {
-            const res = await api.post(`/api/messages/send/${selectedChat._id}`, {
-                message: newMessage,
-            });
+            const res = await sendMessageToServer(newMessage);
+
+            if (res.status === 202 && res.data.isToxic) {
+                // Toxic detected — show warning banner, don't clear input yet
+                setToxicWarning({
+                    moderatedText: res.data.moderatedText,
+                    originalText: res.data.originalText,
+                });
+                return;
+            }
+
+            // Clean message sent successfully
             setMessages((prev) => [...prev, res.data]);
             setNewMessage("");
-            if (onMessageSent) {
-                onMessageSent(res.data);
-            }
+            if (onMessageSent) onMessageSent(res.data);
         } catch (error) {
             console.error("Failed to send message", error);
+        } finally {
+            setIsSending(false);
         }
+    };
+
+    // User accepts the cleaned version from the warning banner
+    const handleAcceptCleaned = async () => {
+        if (!toxicWarning) return;
+        setIsSending(true);
+        try {
+            const res = await sendMessageToServer(toxicWarning.moderatedText, toxicWarning.originalText);
+            setMessages((prev) => [...prev, res.data]);
+            setNewMessage("");
+            setToxicWarning(null);
+            if (onMessageSent) onMessageSent(res.data);
+        } catch (error) {
+            console.error("Failed to send cleaned message", error);
+        } finally {
+            setIsSending(false);
+        }
+    };
+
+    // User cancels the send — restore original toxic text to input
+    const handleCancelSend = () => {
+        if (toxicWarning) setNewMessage(toxicWarning.originalText);
+        setToxicWarning(null);
     };
 
     const handleDeleteMessage = async (messageId) => {
@@ -129,7 +204,7 @@ const ChatWindow = ({ selectedChat, setSelectedChat, currentUser, onMessageSent 
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                     </svg>
                 </button>
-                <div 
+                <div
                     className="flex items-center gap-3 cursor-pointer hover:bg-[#2A2A3A] p-2 rounded-xl transition-colors"
                     onClick={() => navigate(`/profile/${selectedChat._id}`)}
                 >
@@ -148,6 +223,12 @@ const ChatWindow = ({ selectedChat, setSelectedChat, currentUser, onMessageSent 
                         <h3 className="text-white font-medium">{selectedChat.nickname || selectedChat.name}</h3>
                     </div>
                 </div>
+                {/* Moderation badge in header */}
+                {isModerationEnabled && (
+                    <span className="ml-auto text-xs bg-purple-500/20 text-purple-400 px-2 py-1 rounded-full flex items-center gap-1 font-medium">
+                        🛡️ AI Moderation ON
+                    </span>
+                )}
             </div>
 
             {/* Messages */}
@@ -162,7 +243,6 @@ const ChatWindow = ({ selectedChat, setSelectedChat, currentUser, onMessageSent 
                     </div>
                 ) : (
                     messages.map((m, index) => {
-                        // Some messages from socket might have sender as object instead of string ID
                         const senderId = typeof m.sender === 'object' ? m.sender._id : m.sender;
                         const fromMe = senderId === currentUser._id;
                         const isEditing = editingMessageId === m._id;
@@ -174,7 +254,7 @@ const ChatWindow = ({ selectedChat, setSelectedChat, currentUser, onMessageSent 
                             >
                                 {fromMe && !isEditing && (
                                     <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center mr-2 relative">
-                                        <button 
+                                        <button
                                             onClick={() => setOpenDropdownId(openDropdownId === m._id ? null : m._id)}
                                             className="p-1.5 text-gray-400 hover:text-white rounded-full hover:bg-[#2D2D3B] flex items-center justify-center"
                                         >
@@ -182,16 +262,16 @@ const ChatWindow = ({ selectedChat, setSelectedChat, currentUser, onMessageSent 
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
                                             </svg>
                                         </button>
-                                        
+
                                         {openDropdownId === m._id && (
                                             <div className="absolute right-0 top-full z-10 w-28 bg-[#232330] border border-[#2D2D3B] rounded-lg shadow-xl overflow-hidden overflow-visible">
-                                                <button 
+                                                <button
                                                     onClick={() => startEditing(m)}
                                                     className="w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-[#2D2D3B] hover:text-white transition-colors"
                                                 >
                                                     Edit
                                                 </button>
-                                                <button 
+                                                <button
                                                     onClick={() => handleDeleteMessage(m._id)}
                                                     className="w-full text-left px-4 py-2.5 text-sm text-red-400 hover:bg-[#2D2D3B] hover:text-red-300 transition-colors"
                                                 >
@@ -204,13 +284,13 @@ const ChatWindow = ({ selectedChat, setSelectedChat, currentUser, onMessageSent 
 
                                 <div
                                     className={`max-w-[75%] rounded-2xl px-4 py-2 text-sm ${fromMe
-                                            ? "bg-[#8E54E9] text-white rounded-tr-none"
-                                            : "bg-[#2D2D3B] text-gray-200 rounded-tl-none"
+                                        ? "bg-[#8E54E9] text-white rounded-tr-none"
+                                        : "bg-[#2D2D3B] text-gray-200 rounded-tl-none"
                                         }`}
                                 >
                                     {isEditing ? (
                                         <div className="flex flex-col gap-2">
-                                            <input 
+                                            <input
                                                 type="text"
                                                 autoFocus
                                                 value={editMessageText}
@@ -230,6 +310,9 @@ const ChatWindow = ({ selectedChat, setSelectedChat, currentUser, onMessageSent 
                                         <>
                                             <p>{m.message}</p>
                                             <div className={`flex items-center justify-end gap-1 mt-1 ${fromMe ? "text-purple-200" : "text-gray-400"}`}>
+                                                {m.isModerated && (
+                                                    <span className="text-[9px] italic bg-white/10 px-1.5 py-0.5 rounded-full">🛡️ AI-cleaned</span>
+                                                )}
                                                 {m.isEdited && <span className="text-[9px] italic">(edited)</span>}
                                                 <p className="text-[10px]">
                                                     {m.createdAt ? format(new Date(m.createdAt), "p") : format(new Date(), "p")}
@@ -245,6 +328,41 @@ const ChatWindow = ({ selectedChat, setSelectedChat, currentUser, onMessageSent 
                 <div ref={messagesEndRef} />
             </div>
 
+            {/* Toxicity Warning Banner */}
+            {toxicWarning && (
+                <div className="mx-4 mb-2 bg-[#1A1A24] border border-orange-500/40 rounded-xl p-4 shadow-lg">
+                    <div className="flex items-center gap-2 mb-3">
+                        <span className="text-orange-400 text-lg">⚠️</span>
+                        <p className="text-orange-400 font-semibold text-sm">Toxic content detected</p>
+                    </div>
+                    <div className="space-y-2 mb-3">
+                        <div>
+                            <p className="text-[11px] text-gray-500 uppercase tracking-wide mb-1">Your message</p>
+                            <p className="text-red-400 text-sm bg-red-500/10 rounded-lg px-3 py-2 line-through opacity-80">{toxicWarning.originalText}</p>
+                        </div>
+                        <div>
+                            <p className="text-[11px] text-gray-500 uppercase tracking-wide mb-1">AI-cleaned version</p>
+                            <p className="text-emerald-400 text-sm bg-emerald-500/10 rounded-lg px-3 py-2">{toxicWarning.moderatedText}</p>
+                        </div>
+                    </div>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={handleAcceptCleaned}
+                            disabled={isSending}
+                            className="flex-1 py-2 text-sm font-medium text-white bg-[#8E54E9] hover:bg-[#7a45cf] rounded-lg transition-colors disabled:opacity-50"
+                        >
+                            Send Cleaned Version
+                        </button>
+                        <button
+                            onClick={handleCancelSend}
+                            className="flex-1 py-2 text-sm font-medium text-gray-300 hover:text-white bg-[#2D2D3B] hover:bg-[#3D3D4E] rounded-lg transition-colors"
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* Message Input */}
             <div className="p-4 bg-[#232330] border-t border-[#2D2D3B]">
                 <form onSubmit={handleSendMessage} className="flex gap-2">
@@ -252,12 +370,12 @@ const ChatWindow = ({ selectedChat, setSelectedChat, currentUser, onMessageSent 
                         type="text"
                         value={newMessage}
                         onChange={(e) => setNewMessage(e.target.value)}
-                        placeholder={`Message ${selectedChat.nickname || selectedChat.name}...`}
+                        placeholder={isModerationEnabled ? `Message ${selectedChat.nickname || selectedChat.name} (moderated)...` : `Message ${selectedChat.nickname || selectedChat.name}...`}
                         className="flex-1 bg-[#1A1A24] text-white border border-[#2D2D3B] rounded-full px-4 py-2.5 focus:outline-none focus:border-[#8E54E9] transition-colors"
                     />
                     <button
                         type="submit"
-                        disabled={!newMessage.trim()}
+                        disabled={!newMessage.trim() || isSending}
                         className="w-11 h-11 bg-[#8E54E9] rounded-full flex items-center justify-center text-white hover:bg-[#7a45cf] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
                     >
                         <svg fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-5 h-5 ml-1">

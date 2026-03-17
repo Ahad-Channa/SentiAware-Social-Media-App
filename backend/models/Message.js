@@ -30,6 +30,13 @@ const messageSchema = new mongoose.Schema(
                 ref: "User",
             },
         ],
+        isModerated: {
+            type: Boolean,
+            default: false,
+        },
+        originalMessage: {
+            type: String,
+        },
     },
     { timestamps: true }
 );

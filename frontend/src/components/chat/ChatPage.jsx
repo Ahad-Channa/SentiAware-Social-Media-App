@@ -51,7 +51,9 @@ const ChatPage = () => {
                     ...chatUser,
                     lastMessage: convo ? convo.lastMessage : null,
                     updatedAt: convo ? convo.updatedAt : null,
-                    unreadCount: convo ? convo.unreadCount || 0 : 0
+                    unreadCount: convo ? convo.unreadCount || 0 : 0,
+                    conversationId: convo ? convo._id : null,
+                    isModerationEnabled: convo ? convo.isModerationEnabled || false : false,
                 };
             });
 
@@ -164,8 +166,27 @@ const ChatPage = () => {
 
         socket.on("newMessage", handleNewMessage);
 
+        const handleModerationToggled = ({ conversationId, isModerationEnabled }) => {
+            setFriends(prevFriends =>
+                prevFriends.map(f =>
+                    f.conversationId === conversationId
+                        ? { ...f, isModerationEnabled: isModerationEnabled }
+                        : f
+                )
+            );
+            setSelectedChat(prev => {
+                if (prev && prev.conversationId === conversationId) {
+                    return { ...prev, isModerationEnabled: isModerationEnabled };
+                }
+                return prev;
+            });
+        };
+
+        socket.on("moderationToggled", handleModerationToggled);
+
         return () => {
             socket.off("newMessage", handleNewMessage);
+            socket.off("moderationToggled", handleModerationToggled);
         };
     }, [socket, selectedChat]);
 
@@ -193,6 +214,21 @@ const ChatPage = () => {
                 return 0;
             });
         });
+    };
+
+    // Callback to toggle AI moderation for a conversation
+    const handleToggleModeration = (conversationId, newModerationState) => {
+        setFriends(prevFriends =>
+            prevFriends.map(f =>
+                f.conversationId === conversationId
+                    ? { ...f, isModerationEnabled: newModerationState }
+                    : f
+            )
+        );
+        // Keep selectedChat in sync if it's the active conversation
+        if (selectedChat && selectedChat.conversationId === conversationId) {
+            setSelectedChat(prev => ({ ...prev, isModerationEnabled: newModerationState }));
+        }
     };
 
     // Callback to delete a chat history from the current user's perspective
@@ -245,6 +281,7 @@ const ChatPage = () => {
                             selectedChat={selectedChat}
                             setSelectedChat={setSelectedChat}
                             onDeleteChat={handleDeleteChat}
+                            onToggleModeration={handleToggleModeration}
                         />
                     </div>
 
@@ -256,6 +293,7 @@ const ChatPage = () => {
                                 setSelectedChat={setSelectedChat}
                                 currentUser={user}
                                 onMessageSent={handleMessageSent}
+                                isModerationEnabled={selectedChat?.isModerationEnabled || false}
                             />
                         ) : (
                             <div className="flex-1 flex flex-col items-center justify-center text-gray-400">
