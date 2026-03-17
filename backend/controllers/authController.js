@@ -30,8 +30,106 @@ const uploadToCloudinary = (fileBuffer) => {
 };
 
 const pendingRegistrations = new Map();
+const pendingPasswordResets = new Map();
 
-// STEP 1: INIT REGISTER (Send OTP only)
+// STEP 1: INIT FORGOT PASSWORD (Send OTP)
+export const forgotPasswordInit = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "No account found with that email." });
+    }
+
+    const existingPending = pendingPasswordResets.get(email);
+    if (existingPending && existingPending.expires > Date.now()) {
+      const waitTimeRemaining = Math.ceil((existingPending.expires - Date.now()) / 1000 / 60);
+      return res.status(400).json({ message: `An OTP was already sent. Please wait ${waitTimeRemaining} minutes before requesting a new one.` });
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    pendingPasswordResets.set(email, {
+      otp,
+      expires: Date.now() + 5 * 60 * 1000, // 5 minutes expiration
+    });
+
+    const htmlBody = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #1A1A24; padding: 20px; border-radius: 10px; color: #ffffff;">
+        <h2 style="color: #8E54E9; text-align: center;">SentiAware Password Reset</h2>
+        <p style="font-size: 16px; color: #d1d5db;">Hello ${user.name},</p>
+        <p style="font-size: 16px; color: #d1d5db;">We received a request to reset your password. Here is your One-Time Password (OTP):</p>
+        <div style="background-color: #232330; padding: 15px; border-radius: 8px; text-align: center; margin: 20px 0;">
+          <strong style="font-size: 32px; color: #ffffff; letter-spacing: 5px;">${otp}</strong>
+        </div>
+        <p style="font-size: 14px; color: #9ca3af;">This OTP is valid for 5 minutes. If you did not request a password reset, please ignore this email.</p>
+        <hr style="border-color: #2D2D3B; margin-top: 30px; margin-bottom: 20px;" />
+        <p style="font-size: 12px; color: #6b7280; text-align: center;">© 2026 SentiAware. All rights reserved.</p>
+      </div>
+    `;
+
+    await sendEmail(
+      email,
+      "SentiAware Password Reset - OTP",
+      `Your OTP for password reset is: ${otp}. It expires in 5 minutes.`,
+      htmlBody
+    );
+
+    res.json({ message: "OTP sent to your email" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// STEP 2: VERIFY OTP AND RESET PASSWORD
+export const forgotPasswordVerify = async (req, res) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+
+    const record = pendingPasswordResets.get(email);
+
+    if (!record) {
+      return res.status(400).json({ message: "No pending password reset found. Please request a new OTP." });
+    }
+
+    if (record.expires < Date.now()) {
+      pendingPasswordResets.delete(email);
+      return res.status(400).json({ message: "OTP expired. Please request a new one." });
+    }
+
+    if (record.otp !== otp) {
+      return res.status(400).json({ message: "Invalid OTP" });
+    }
+
+    if (
+        newPassword.length < 8 ||
+        !/[A-Z]/.test(newPassword) ||
+        !/[0-9]/.test(newPassword) ||
+        !/[@$!%*?&#]/.test(newPassword)
+    ) {
+        return res.status(400).json({
+          message:
+            "Password must be at least 8 characters long, contain an uppercase letter, a number, and a special character.",
+        });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+    await user.save();
+
+    pendingPasswordResets.delete(email);
+
+    res.status(200).json({ message: "Password updated successfully!" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 export const registerInit = async (req, res) => {
   try {
     const { name, email, password, gender } = req.body;
@@ -74,10 +172,25 @@ export const registerInit = async (req, res) => {
 
 
 
+    const htmlBody = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #1A1A24; padding: 20px; border-radius: 10px; color: #ffffff;">
+        <h2 style="color: #8E54E9; text-align: center;">Welcome to SentiAware!</h2>
+        <p style="font-size: 16px; color: #d1d5db;">Hello ${name},</p>
+        <p style="font-size: 16px; color: #d1d5db;">Thank you for starting your registration. Here is your One-Time Password (OTP) to verify your email address:</p>
+        <div style="background-color: #232330; padding: 15px; border-radius: 8px; text-align: center; margin: 20px 0;">
+          <strong style="font-size: 32px; color: #ffffff; letter-spacing: 5px;">${otp}</strong>
+        </div>
+        <p style="font-size: 14px; color: #9ca3af;">This OTP is valid for 1 minute. If you did not request this registration, please ignore this email.</p>
+        <hr style="border-color: #2D2D3B; margin-top: 30px; margin-bottom: 20px;" />
+        <p style="font-size: 12px; color: #6b7280; text-align: center;">© 2026 SentiAware. All rights reserved.</p>
+      </div>
+    `;
+
     await sendEmail(
       email,
       "SentiAware Registration OTP",
-      `Your OTP is: ${otp}`
+      `Your OTP is: ${otp}`,
+      htmlBody
     );
 
     res.json({ message: "OTP sent to your email" });

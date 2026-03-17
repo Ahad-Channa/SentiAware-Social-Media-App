@@ -18,6 +18,8 @@ import Settings from "./components/profile/Settings";
 import ModerationLog from "./components/profile/ModerationLog";
 
 
+import ForgotPassword from './components/auth/ForgotPassword';
+
 function App() {
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.user);
@@ -40,6 +42,7 @@ function App() {
           <Route path="/" element={<Navigate to={isAuthenticated ? "/feed" : "/login"} />} />
           <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/feed" />} />
           <Route path="/signup" element={!isAuthenticated ? <Signup /> : <Navigate to="/feed" />} />
+          <Route path="/forgot-password" element={!isAuthenticated ? <ForgotPassword /> : <Navigate to="/feed" />} />
           <Route path="/profile" element={isAuthenticated ? <Profile /> : <Navigate to="/login" />} />
           <Route path="/friends" element={isAuthenticated ? <FriendsList /> : <Navigate to="/login" />} />
           <Route path="/friends/requests" element={isAuthenticated ? <FriendRequests /> : <Navigate to="/login" />} />

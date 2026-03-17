@@ -1,6 +1,6 @@
 import nodemailer from "nodemailer";
 
-const sendEmail = async (to, subject, text) => {
+const sendEmail = async (to, subject, text, html = null) => {
   const transporter = nodemailer.createTransport({
     host: process.env.EMAIL_HOST,
     port: process.env.EMAIL_PORT,
@@ -11,12 +11,18 @@ const sendEmail = async (to, subject, text) => {
     },
   });
 
-  await transporter.sendMail({
+  const mailOptions = {
     from: `"SentiAware" <${process.env.EMAIL_USER}>`,
     to,
     subject,
     text,
-  });
+  };
+
+  if (html) {
+    mailOptions.html = html;
+  }
+
+  await transporter.sendMail(mailOptions);
 };
 
 export default sendEmail;
