@@ -28,8 +28,7 @@ const settingsItems = [
         iconBg: 'bg-indigo-500/15',
         iconColor: 'text-indigo-400',
         route: '/settings/change-password',
-        disabled: true,
-        badge: 'Coming Soon',
+        disabled: false,
     },
 ];
 

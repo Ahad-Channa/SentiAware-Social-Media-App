@@ -1,5 +1,5 @@
 import express from "express";
-import { registerUser, loginUser, updateUserProfile, registerInit, registerVerify, forgotPasswordInit, forgotPasswordVerify } from "../controllers/authController.js";
+import { registerUser, loginUser, updateUserProfile, registerInit, registerVerify, forgotPasswordInit, forgotPasswordVerify, changePassword } from "../controllers/authController.js";
 import authMiddleware from "../middleware/authMiddleware.js"; // <--- add this
 import upload from "../middleware/uploadMiddleware.js";
 
@@ -12,5 +12,6 @@ router.post("/register-verify", upload.single("profilePic"), registerVerify);
 router.post("/register", upload.single("profilePic"), registerUser);
 router.post("/login", loginUser);
 router.put("/update", authMiddleware, upload.single("profilePic"), updateUserProfile);
+router.put("/change-password", authMiddleware, changePassword);
 
 export default router;

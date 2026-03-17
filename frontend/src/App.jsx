@@ -16,6 +16,7 @@ import SinglePost from "./components/post/SinglePost";
 import ChatPage from "./components/chat/ChatPage";
 import Settings from "./components/profile/Settings";
 import ModerationLog from "./components/profile/ModerationLog";
+import ChangePassword from "./components/profile/ChangePassword";
 
 
 import ForgotPassword from './components/auth/ForgotPassword';
@@ -53,6 +54,7 @@ function App() {
           <Route path="/edit-profile" element={isAuthenticated ? <EditProfile /> : <Navigate to="/login" />} />
           <Route path="/settings" element={isAuthenticated ? <Settings /> : <Navigate to="/login" />} />
           <Route path="/settings/moderation-log" element={isAuthenticated ? <ModerationLog /> : <Navigate to="/login" />} />
+          <Route path="/settings/change-password" element={isAuthenticated ? <ChangePassword /> : <Navigate to="/login" />} />
           <Route path="/profile/:id" element={isAuthenticated ? <PublicProfile /> : <Navigate to="/login" />} />
           <Route path="/post/:id" element={isAuthenticated ? <SinglePost /> : <Navigate to="/login" />} />
           <Route path="*" element={<Navigate to={isAuthenticated ? "/feed" : "/login"} />} />
