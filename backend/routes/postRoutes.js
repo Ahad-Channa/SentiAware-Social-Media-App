@@ -24,7 +24,22 @@ const router = express.Router();
 router.post("/validate-text", protect, validateText);
 router.get("/moderated-logs", protect, getModerationLogs);
 router.get("/comment-moderated-logs", protect, getCommentModerationLogs);
-router.post("/", protect, upload.single("image"), createPost);
+
+// Custom wrapper to catch Multer errors and return clean JSON response
+const uploadSingleImage = (req, res, next) => {
+    const uploader = upload.single("image");
+    uploader(req, res, function (err) {
+        if (err) {
+            if (err.code === "LIMIT_FILE_SIZE") {
+                return res.status(400).json({ message: "Image size cannot exceed 1.5MB." });
+            }
+            return res.status(400).json({ message: err.message });
+        }
+        next();
+    });
+};
+
+router.post("/", protect, uploadSingleImage, createPost);
 router.get("/feed", protect, getFeedPosts);
 router.get("/user/:userId", protect, getUserPosts);
 router.get("/:id", protect, getPostById);

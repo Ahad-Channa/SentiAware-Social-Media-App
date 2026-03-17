@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { createPost, validatePostText } from '../../api/api';
+import { Toaster, toast } from 'react-hot-toast';
 
 const CreatePost = () => {
   const navigate = useNavigate();
@@ -20,6 +21,17 @@ const CreatePost = () => {
   const handleImageSelect = (e) => {
     const file = e.target.files[0];
     if (file) {
+      if (!file.type.startsWith("image/")) {
+        toast.error("Please select a valid image file.", { style: { borderRadius: '10px', background: '#fff0f6', color: '#c53030', fontWeight: 'bold' } });
+        if (fileInputRef.current) fileInputRef.current.value = "";
+        return;
+      }
+      if (file.size > 1.5 * 1024 * 1024) {
+        toast.error("Image size cannot exceed 1.5MB.", { style: { borderRadius: '10px', background: '#fff0f6', color: '#c53030', fontWeight: 'bold' } });
+        if (fileInputRef.current) fileInputRef.current.value = "";
+        return;
+      }
+
       setSelectedImage(file);
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -96,7 +108,8 @@ const CreatePost = () => {
       navigate('/feed');
     } catch (error) {
       console.error("Error creating post:", error);
-      alert("Failed to create post. Please try again.");
+      const errorMsg = error.response?.data?.message || "Failed to create post. Please try again.";
+      toast.error(errorMsg, { style: { borderRadius: '10px', background: '#fff0f6', color: '#c53030', fontWeight: 'bold' } });
     } finally {
       setIsSubmitting(false);
     }
@@ -104,6 +117,7 @@ const CreatePost = () => {
 
   return (
     <div className="min-h-screen bg-slate-900 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <Toaster />
       <div className="max-w-xl w-full bg-slate-800 rounded-2xl border border-slate-700 shadow-sm overflow-hidden relative">
 
         {/* Close Button (Absolute) */}
