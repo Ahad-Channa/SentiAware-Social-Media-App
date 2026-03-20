@@ -49,13 +49,67 @@ export const analyzeText = async (text) => {
     }
 };
 
-// Analyze image for harmful content
-export const analyzeImage = async (imageBuffer) => {
-    // TODO: Integrate actual AI model (OCR + Visual Classification)
+// Analyze image for harmful content and check extracted text toxicity
+export const analyzeImage = async (imageBuffer, mimetype = "image/jpeg") => {
+    try {
+        const hfSpaceUrl = process.env.HF_IMAGE_MODEL_URL || "https://ahad-channa-senti-image.hf.space";
+        
+        // Use Node 18+ native Blob and FormData to send multipart/form-data via Axios
+        const blob = new Blob([imageBuffer], { type: mimetype });
+        const formData = new FormData();
+        formData.append("file", blob, "upload.jpg");
+        
+        const response = await axios.post(`${hfSpaceUrl}/analyze-image`, formData);
 
-    // For now, assume all images are safe
-    return {
-        safe: true,
-        reason: null
-    };
+        const data = response.data;
+        
+        // Rule 1: Visual Image Classification Check
+        if (data.nsfw || data.harmful) {
+            let reason = "Image contains inappropriate content";
+            let type = "unknown";
+            
+            if (data.harmful) {
+                reason = "Image contains violence";
+                type = "violence";
+            } else if (data.nsfw) {
+                reason = "Image contains nudity/NSFW";
+                type = "nsfw";
+            }
+            
+            return {
+                safe: false,
+                reason: reason,
+                type: type,
+                score: data.confidence,
+                extracted_text: data.extracted_text
+            };
+        }
+
+        // Rule 2 & 3: OCR Extracted Text Toxicity Check
+        if (data.extracted_text && data.extracted_text.trim() !== "") {
+            const textCheck = await analyzeText(data.extracted_text);
+            if (!textCheck.safe) {
+                return {
+                    safe: false,
+                    reason: "Text inside the image contains toxic content",
+                    score: textCheck.score,
+                    extracted_text: data.extracted_text
+                };
+            }
+        }
+
+        // Rule 4: Both image and text are safe
+        return {
+            safe: true,
+            reason: null,
+            extracted_text: data.extracted_text
+        };
+    } catch (error) {
+        console.error("Error calling Image Moderation API:", error.message);
+        // Fallback: fail open if HF is down to not block users, but log the error
+        return {
+            safe: true,
+            reason: "Image Moderation unavailable"
+        };
+    }
 };

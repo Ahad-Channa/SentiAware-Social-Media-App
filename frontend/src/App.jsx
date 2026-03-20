@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import { useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import Login from './components/auth/Login';
@@ -37,6 +38,7 @@ function App() {
   return (
     <Router>
       <div className="app">
+        <Toaster />
         {isAuthenticated && <Header />}
 
         <Routes>

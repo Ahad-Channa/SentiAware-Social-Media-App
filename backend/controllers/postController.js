@@ -14,8 +14,13 @@ export const createPost = async (req, res) => {
 
         // 1. Image Upload & Moderation
         if (req.file) {
-            // Placeholder: Analyze image buffer before upload
-            // In real app: await analyzeImage(req.file.buffer);
+            const imageCheck = await analyzeImage(req.file.buffer, req.file.mimetype);
+            if (!imageCheck.safe) {
+                return res.status(400).json({ 
+                    message: imageCheck.reason || "Image contains inappropriate content",
+                    errorType: "image_moderation"
+                });
+            }
 
             // Upload to Cloudinary
             const b64 = Buffer.from(req.file.buffer).toString("base64");
@@ -722,13 +727,13 @@ export const deletePost = async (req, res) => {
         // Delete image from Cloudinary if exists
         if (post.image) {
             try {
-                // Extract public_id from URL
-                // URL format: https://res.cloudinary.com/cloud_name/image/upload/v12345/senti_posts/filename.jpg
-                const parts = post.image.split("/");
-                const filename = parts[parts.length - 1];
-                const publicId = `senti_posts/${filename.split(".")[0]}`;
-
-                await cloudinary.uploader.destroy(publicId);
+                // Extract public_id using a more robust regex that handles /upload/(vXXX/)?folder/filename.ext
+                const publicIdMatch = post.image.match(/\/upload\/(?:v\d+\/)?([^.]+)/);
+                if (publicIdMatch && publicIdMatch[1]) {
+                    const publicId = publicIdMatch[1];
+                    await cloudinary.uploader.destroy(publicId);
+                    console.log(`Successfully deleted image from Cloudinary: ${publicId}`);
+                }
             } catch (err) {
                 console.error("Error deleting image from Cloudinary:", err);
                 // Continue to delete post even if image deletion fails

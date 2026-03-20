@@ -41,7 +41,12 @@ const postSchema = new mongoose.Schema(
     {
         content: {
             type: String,
-            required: [true, "Please add some content"],
+            required: [
+                function () {
+                    return !this.image;
+                },
+                "Please add some content or an image",
+            ],
         },
         image: {
             type: String,
