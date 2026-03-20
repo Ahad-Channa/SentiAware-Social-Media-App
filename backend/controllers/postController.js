@@ -12,14 +12,16 @@ export const createPost = async (req, res) => {
         const { content, originalToxicContent } = req.body;
         let imageUrl = "";
 
-        // 1. Image Upload & Moderation
+        // 1. Initialize moderation state
+        let isFlagged = false;
+        let toxicityDetails = {};
+        
+        // 2. Image Upload & Moderation
         if (req.file) {
             const imageCheck = await analyzeImage(req.file.buffer, req.file.mimetype);
             if (!imageCheck.safe) {
-                return res.status(400).json({ 
-                    message: imageCheck.reason || "Image contains inappropriate content",
-                    errorType: "image_moderation"
-                });
+                isFlagged = true;
+                toxicityDetails.imageFlag = imageCheck.type || "toxic_text";
             }
 
             // Upload to Cloudinary
@@ -31,24 +33,21 @@ export const createPost = async (req, res) => {
             imageUrl = result.secure_url;
         }
 
-        // 2. Text Moderation
+        // 3. Text Moderation
         // If frontend sends originalToxicContent, it means user already accepted AI suggestion
         // If they bypass it, we run analyzeText again to be safe
         let finalContent = content;
-        let isFlagged = false;
-        let toxicityDetails = {};
         
         if (originalToxicContent) {
             isFlagged = true;
+            toxicityDetails.originalContent = originalToxicContent;
         } else {
             const moderationResult = await analyzeText(content);
             if (!moderationResult.safe) {
                  finalContent = moderationResult.moderatedText;
                  isFlagged = true;
-                 toxicityDetails = {
-                     originalContent: content,
-                     toxicityScore: moderationResult.score
-                 }
+                 toxicityDetails.originalContent = content;
+                 toxicityDetails.toxicityScore = moderationResult.score;
             }
         }
 
@@ -57,10 +56,11 @@ export const createPost = async (req, res) => {
             author: req.user._id,
             content: finalContent,
             image: imageUrl,
-            originalContent: originalToxicContent || toxicityDetails.originalContent || undefined,
+            originalContent: toxicityDetails.originalContent || undefined,
             isModerated: isFlagged,
             moderationStatus: isFlagged ? "flagged" : "safe", 
             toxicityScore: toxicityDetails.toxicityScore,
+            imageFlag: toxicityDetails.imageFlag || "",
         });
 
         const savedPost = await newPost.save();

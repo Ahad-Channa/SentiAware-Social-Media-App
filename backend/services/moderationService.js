@@ -85,16 +85,29 @@ export const analyzeImage = async (imageBuffer, mimetype = "image/jpeg") => {
             };
         }
 
+        // Sanity Check: If OCR text is likely a diagram, code snippet, or highly unstructured, skip toxicity check
+        // to prevent NLP model false positives.
+        const isLikelyDiagramOrCode = (text) => {
+            const specialCharRatio = (text.match(/[^a-zA-Z0-9\s]/g) || []).length / text.length;
+            const hasTechKeywords = /(http|REST|OAuth|API|Layer|Model|nodc|Microservice)/i.test(text);
+            return specialCharRatio > 0.10 || hasTechKeywords;
+        };
+
         // Rule 2 & 3: OCR Extracted Text Toxicity Check
         if (data.extracted_text && data.extracted_text.trim() !== "") {
-            const textCheck = await analyzeText(data.extracted_text);
-            if (!textCheck.safe) {
-                return {
-                    safe: false,
-                    reason: "Text inside the image contains toxic content",
-                    score: textCheck.score,
-                    extracted_text: data.extracted_text
-                };
+            if (!isLikelyDiagramOrCode(data.extracted_text)) {
+                const textCheck = await analyzeText(data.extracted_text);
+                if (!textCheck.safe) {
+                    return {
+                        safe: false,
+                        reason: "Text inside the image contains toxic content",
+                        type: "toxic_text",
+                        score: textCheck.score,
+                        extracted_text: data.extracted_text
+                    };
+                }
+            } else {
+                console.log("Skipped text toxicity check for diagram/code block.");
             }
         }
 

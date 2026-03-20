@@ -16,7 +16,6 @@ const CreatePost = () => {
   const [showSuggestionUI, setShowSuggestionUI] = useState(false);
   const [suggestedText, setSuggestedText] = useState('');
   const [originalText, setOriginalText] = useState('');
-  const [imageWarning, setImageWarning] = useState(null);
   const fileInputRef = useRef(null);
 
   const handleImageSelect = (e) => {
@@ -45,7 +44,6 @@ const CreatePost = () => {
   const removeImage = () => {
     setSelectedImage(null);
     setImagePreview(null);
-    setImageWarning(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -53,7 +51,6 @@ const CreatePost = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setImageWarning(null);
     if (!postContent.trim() && !selectedImage) return;
 
     // AI Toxicity Validation Flow (only for text)
@@ -118,12 +115,8 @@ const CreatePost = () => {
       navigate('/feed');
     } catch (error) {
       console.error("Error creating post:", error);
-      if (error.response?.data?.errorType === "image_moderation") {
-        setImageWarning(error.response.data.message);
-      } else {
-        const errorMsg = error.response?.data?.message || "Failed to create post. Please try again.";
-        toast.error(errorMsg, { style: { borderRadius: '10px', background: '#fff0f6', color: '#c53030', fontWeight: 'bold' } });
-      }
+      const errorMsg = error.response?.data?.message || "Failed to create post. Please try again.";
+      toast.error(errorMsg, { style: { borderRadius: '10px', background: '#fff0f6', color: '#c53030', fontWeight: 'bold' } });
     } finally {
       setIsSubmitting(false);
     }
@@ -181,27 +174,6 @@ const CreatePost = () => {
                     className="text-xs text-slate-400 hover:text-slate-200 transition-colors underline"
                   >
                     Cancel and revert my text
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Image Moderation Banner */}
-          {imageWarning && (
-            <div className="mb-4 p-4 bg-red-500/10 border border-red-500/20 rounded-xl relative">
-              <div className="flex items-start gap-3">
-                <svg className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                <div>
-                  <h3 className="text-sm font-semibold text-red-500 mb-1">Image Moderation Alert</h3>
-                  <p className="text-sm text-slate-300 mb-2">
-                    {imageWarning}
-                  </p>
-                  <button 
-                    onClick={removeImage}
-                    className="text-xs text-slate-400 hover:text-slate-200 transition-colors underline"
-                  >
-                    Cancel and remove image
                   </button>
                 </div>
               </div>

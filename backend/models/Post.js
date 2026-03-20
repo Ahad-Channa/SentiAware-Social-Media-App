@@ -80,6 +80,10 @@ const postSchema = new mongoose.Schema(
         toxicityScore: {
             type: Number, // Placeholder for future AI score
         },
+        imageFlag: {
+            type: String, // e.g., "violence", "nsfw", "toxic_text"
+            default: "",
+        },
     },
     { timestamps: true }
 );

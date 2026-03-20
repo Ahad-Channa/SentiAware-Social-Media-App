@@ -315,6 +315,9 @@ const Post = ({ post, onPostUpdated, onPostDeleted }) => {
     // Delete Modal State
     const [showDeleteModal, setShowDeleteModal] = useState(false);
 
+    // Flagged image reveal toggle
+    const [showFlaggedImage, setShowFlaggedImage] = useState(false);
+
     const menuRef = useRef(null);
 
     const currentUser = JSON.parse(localStorage.getItem('user'));
@@ -522,8 +525,47 @@ const Post = ({ post, onPostUpdated, onPostDeleted }) => {
             )}
 
             {post.image && (
-                <div className="mb-5 rounded-xl overflow-hidden border border-gray-100">
-                    <img src={post.image} alt="Post content" className="w-full h-auto object-cover max-h-[500px]" />
+                <div className="mb-5 rounded-xl overflow-hidden border border-[#2D2D3B] relative group">
+                    {post.imageFlag && (
+                        <>
+                            {/* Warning badge - top left */}
+                            <div className="absolute top-3 left-3 flex items-center gap-2 px-3 py-1.5 bg-black/80 backdrop-blur-md text-white text-xs font-bold rounded-lg shadow-lg border border-red-500/30 z-10 pointer-events-none">
+                                <svg className="w-4 h-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                                <span className="tracking-wide uppercase">
+                                    {post.imageFlag === "violence" ? "Violent Content" : 
+                                     post.imageFlag === "nsfw" ? "NSFW Content" : 
+                                     post.imageFlag === "toxic_text" ? "Contains Toxic Text" : 
+                                     "Content Warning"}
+                                </span>
+                            </div>
+
+                            {/* Eye toggle - top right */}
+                            <button
+                                onClick={() => setShowFlaggedImage(prev => !prev)}
+                                title={showFlaggedImage ? "Hide image" : "Show image"}
+                                className="absolute top-3 right-3 z-10 flex items-center gap-1.5 px-3 py-1.5 bg-black/80 backdrop-blur-md text-white text-xs font-semibold rounded-lg shadow-lg border border-white/10 hover:bg-white/10 transition-colors"
+                            >
+                                {showFlaggedImage ? (
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                                    </svg>
+                                ) : (
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                )}
+                                {showFlaggedImage ? "Hide" : "View"}
+                            </button>
+                        </>
+                    )}
+                    <img 
+                        src={post.image} 
+                        alt="Post content" 
+                        className={`w-full h-auto object-cover max-h-[500px] transition-all duration-500 ${post.imageFlag && !showFlaggedImage ? 'blur-xl brightness-50 scale-105' : ''}`} 
+                    />
                 </div>
             )}
 
