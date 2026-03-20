@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { likePost, commentPost, updatePost, deletePost, replyToComment, editComment, deleteComment, hideComment, validateCommentText } from '../../api/api';
+import ReportModal from './ReportModal';
 
 // Helper to count total comments recursively
 const countComments = (comments) => {
@@ -315,6 +316,9 @@ const Post = ({ post, onPostUpdated, onPostDeleted }) => {
     // Delete Modal State
     const [showDeleteModal, setShowDeleteModal] = useState(false);
 
+    // Report Modal State
+    const [showReportModal, setShowReportModal] = useState(false);
+
     // Flagged image reveal toggle
     const [showFlaggedImage, setShowFlaggedImage] = useState(false);
 
@@ -404,7 +408,13 @@ const Post = ({ post, onPostUpdated, onPostDeleted }) => {
         }
     };
 
+    // If post has been removed by community, hide it from the feed
+    if (post.moderationStatus === "removed") {
+        return null;
+    }
+
     return (
+        <>
         <div className="bg-[#232330] rounded-xl border border-[#2D2D3B] p-5 mb-6 transition-all hover:border-gray-600 shadow-sm">
             {/* Delete Confirmation Modal */}
             {showDeleteModal && (
@@ -457,41 +467,44 @@ const Post = ({ post, onPostUpdated, onPostDeleted }) => {
                 </div>
 
                 {/* 3 Dots Menu */}
-                {isOwner && (
-                    <div className="relative" ref={menuRef}>
-                        <button
-                            onClick={() => setShowMenu(!showMenu)}
-                            className="text-gray-400 hover:text-white p-2 rounded-full hover:bg-[#2A2A3A] transition-colors focus:bg-[#2A2A3A] focus:outline-none"
-                        >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z"></path>
-                            </svg>
-                        </button>
+                <div className="relative" ref={menuRef}>
+                    <button
+                        onClick={() => setShowMenu(!showMenu)}
+                        className="text-gray-400 hover:text-white p-2 rounded-full hover:bg-[#2A2A3A] transition-colors focus:bg-[#2A2A3A] focus:outline-none"
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z"></path>
+                        </svg>
+                    </button>
 
-                        {showMenu && (
-                            <div className="absolute right-0 mt-2 w-48 bg-[#232330] rounded-xl shadow-2xl z-20 border border-[#2D2D3B] py-1 overflow-hidden animate-in fade-in zoom-in duration-150 origin-top-right">
+                    {showMenu && (
+                        <div className="absolute right-0 mt-2 w-48 bg-[#232330] rounded-xl shadow-2xl z-20 border border-[#2D2D3B] py-1 overflow-hidden animate-in fade-in zoom-in duration-150 origin-top-right">
+                            {isOwner ? (
+                                <>
+                                    <button
+                                        onClick={() => { setIsEditing(true); setShowMenu(false); }}
+                                        className="block w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-[#2A2A3A] transition-colors"
+                                    >
+                                        Edit Post
+                                    </button>
+                                    <button
+                                        onClick={() => { setShowDeleteModal(true); setShowMenu(false); }}
+                                        className="block w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-500/10 transition-colors"
+                                    >
+                                        Delete Post
+                                    </button>
+                                </>
+                            ) : (
                                 <button
-                                    onClick={() => {
-                                        setIsEditing(true);
-                                        setShowMenu(false);
-                                    }}
-                                    className="block w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-[#2A2A3A] transition-colors"
+                                    onClick={() => { setShowReportModal(true); setShowMenu(false); }}
+                                    className="block w-full text-left px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
                                 >
-                                    Edit Post
+                                    🚩 Report Post
                                 </button>
-                                <button
-                                    onClick={() => {
-                                        setShowDeleteModal(true);
-                                        setShowMenu(false);
-                                    }}
-                                    className="block w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-500/10 transition-colors"
-                                >
-                                    Delete Post
-                                </button>
-                            </div>
-                        )}
-                    </div>
-                )}
+                            )}
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* Content */}
@@ -678,6 +691,16 @@ const Post = ({ post, onPostUpdated, onPostDeleted }) => {
             )}
 
         </div>
+
+        {/* Report Modal */}
+        {showReportModal && (
+            <ReportModal
+                post={post}
+                onClose={() => setShowReportModal(false)}
+                onPostRemoved={onPostDeleted}
+            />
+        )}
+        </>
     );
 };
 

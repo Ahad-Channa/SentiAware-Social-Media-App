@@ -112,6 +112,12 @@ export const deletePost = async (id) => {
   return res.data;
 };
 
+export const reportPost = async (id, category, note = "") => {
+  const res = await api.post(`/api/posts/${id}/report`, { category, note });
+  return res.data;
+};
+
+
 export const replyToComment = async (postId, commentId, text, originalToxicText = null) => {
   const body = { text };
   if (originalToxicText) body.originalToxicText = originalToxicText;

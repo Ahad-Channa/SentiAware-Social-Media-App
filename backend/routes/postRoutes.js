@@ -8,7 +8,7 @@ import {
   updatePost,
   replyToComment,
   editComment,
-  deleteComment as deletePostComment, // Renamed to avoid partial conflict with controller export if any, though distinct export names used. Actually controller export name is deleteComment, safe to use aliases or just import.
+  deleteComment as deletePostComment,
   hideComment,
   deletePost,
   getPostById,
@@ -16,6 +16,7 @@ import {
   getModerationLogs,
   getCommentModerationLogs,
 } from "../controllers/postController.js";
+import { reportPost } from "../controllers/reportController.js";
 import protect from "../middleware/authMiddleware.js";
 import upload from "../middleware/uploadMiddleware.js";
 
@@ -51,5 +52,6 @@ router.delete("/:id/comments/:commentId", protect, deletePostComment);
 router.put("/:id/comments/:commentId/hide", protect, hideComment);
 router.put("/:id", protect, updatePost);
 router.delete("/:id", protect, deletePost);
+router.post("/:id/report", protect, reportPost);
 
 export default router;
