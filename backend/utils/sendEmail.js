@@ -1,41 +1,50 @@
-import nodemailer from "nodemailer";
-import dns from "dns";
-import util from "util";
-
-// Convert callback-based dns.lookup to a Promise so we can use async/await
-const lookup = util.promisify(dns.lookup);
+import axios from "axios";
 
 const sendEmail = async (to, subject, text, html = null) => {
-  // 1. Manually resolve ONLY the IPv4 address for Gmail right before sending
-  const { address } = await lookup("smtp.gmail.com", { family: 4 });
+  try {
+    const payload = {
+      sender: {
+        name: "SentiAware",
+        // This must be the email address you verify on Brevo!
+        email: process.env.EMAIL_USER, 
+      },
+      to: [
+        {
+          email: to,
+        },
+      ],
+      subject: subject,
+      textContent: text,
+    };
 
-  // 2. Pass that exact IPv4 address into the Host so IPv6 never even attempts to connect
-  const transporter = nodemailer.createTransport({
-    host: address,
-    port: 587,
-    secure: false, // 587 uses STARTTLS
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-    tls: {
-      rejectUnauthorized: false,
-      servername: "smtp.gmail.com", // Crucial: tells Google's TLS we are authorized despite using a raw IP
-    },
-  });
+    if (html) {
+      payload.htmlContent = html;
+    }
 
-  const mailOptions = {
-    from: `"SentiAware" <${process.env.EMAIL_USER}>`,
-    to,
-    subject,
-    text,
-  };
+    const response = await axios.post(
+      "https://api.brevo.com/v3/smtp/email",
+      payload,
+      {
+        headers: {
+          "api-key": process.env.BREVO_API_KEY,
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+        },
+      }
+    );
 
-  if (html) {
-    mailOptions.html = html;
+    return response.data;
+  } catch (error) {
+    console.error(
+      "Brevo Email Error:",
+      error.response ? error.response.data : error.message
+    );
+    throw new Error(
+      error.response && error.response.data.message
+        ? error.response.data.message
+        : "Email failed to send."
+    );
   }
-
-  await transporter.sendMail(mailOptions);
 };
 
 export default sendEmail;
