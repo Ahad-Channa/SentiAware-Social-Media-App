@@ -415,291 +415,291 @@ const Post = ({ post, onPostUpdated, onPostDeleted }) => {
 
     return (
         <>
-        <div className="bg-[#232330] rounded-xl border border-[#2D2D3B] p-5 mb-6 transition-all hover:border-gray-600 shadow-sm">
-            {/* Delete Confirmation Modal */}
-            {showDeleteModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-                    <div className="bg-[#232330] rounded-xl p-6 w-full max-w-sm mx-4 shadow-2xl border border-[#2D2D3B] animate-in fade-in zoom-in duration-200">
-                        <h3 className="text-lg font-bold text-white mb-2">Delete Post?</h3>
-                        <p className="text-gray-400 text-sm mb-6">Are you sure? This cannot be undone.</p>
-                        <div className="flex justify-end gap-3">
+            <div className="bg-[#232330] rounded-xl border border-[#2D2D3B] p-5 mb-6 transition-all hover:border-gray-600 shadow-sm">
+                {/* Delete Confirmation Modal */}
+                {showDeleteModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+                        <div className="bg-[#232330] rounded-xl p-6 w-full max-w-sm mx-4 shadow-2xl border border-[#2D2D3B] animate-in fade-in zoom-in duration-200">
+                            <h3 className="text-lg font-bold text-white mb-2">Delete Post?</h3>
+                            <p className="text-gray-400 text-sm mb-6">Are you sure? This cannot be undone.</p>
+                            <div className="flex justify-end gap-3">
+                                <button
+                                    onClick={() => setShowDeleteModal(false)}
+                                    className="px-4 py-2 text-sm text-gray-400 hover:bg-[#2A2A3A] hover:text-white border border-[#2D2D3B] rounded-lg font-medium transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleDelete}
+                                    className="px-4 py-2 text-sm bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors"
+                                >
+                                    Delete
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Header */}
+                <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                        <Link to={`/profile/${post.author._id}`}>
+                            {post.author.profilePic ? (
+                                <img
+                                    src={post.author.profilePic}
+                                    alt={post.author.name}
+                                    className="h-10 w-10 rounded-full object-cover ring-2 ring-gray-50"
+                                />
+                            ) : (
+                                <div className="h-10 w-10 rounded-full bg-[#2A2A3A] flex items-center justify-center text-gray-400 font-bold border border-[#2D2D3B]">
+                                    {post.author.name?.[0]?.toUpperCase()}
+                                </div>
+                            )}
+                        </Link>
+                        <div>
+                            <Link to={`/profile/${post.author._id}`} className="font-semibold text-white hover:text-[#8E54E9] transition-colors block leading-tight">
+                                {post.author.name}
+                            </Link>
+                            <p className="text-xs text-gray-500 mt-0.5">
+                                {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* 3 Dots Menu */}
+                    <div className="relative" ref={menuRef}>
+                        <button
+                            onClick={() => setShowMenu(!showMenu)}
+                            className="text-gray-400 hover:text-white p-2 rounded-full hover:bg-[#2A2A3A] transition-colors focus:bg-[#2A2A3A] focus:outline-none"
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z"></path>
+                            </svg>
+                        </button>
+
+                        {showMenu && (
+                            <div className="absolute right-0 mt-2 w-48 bg-[#232330] rounded-xl shadow-2xl z-20 border border-[#2D2D3B] py-1 overflow-hidden animate-in fade-in zoom-in duration-150 origin-top-right">
+                                {isOwner ? (
+                                    <>
+                                        <button
+                                            onClick={() => { setIsEditing(true); setShowMenu(false); }}
+                                            className="block w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-[#2A2A3A] transition-colors"
+                                        >
+                                            Edit Post
+                                        </button>
+                                        <button
+                                            onClick={() => { setShowDeleteModal(true); setShowMenu(false); }}
+                                            className="block w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-500/10 transition-colors"
+                                        >
+                                            Delete Post
+                                        </button>
+                                    </>
+                                ) : (
+                                    <button
+                                        onClick={() => { setShowReportModal(true); setShowMenu(false); }}
+                                        className="block w-full text-left px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
+                                    >
+                                        🚩 Report Post
+                                    </button>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Content */}
+                {isEditing ? (
+                    <div className="mb-4">
+                        <textarea
+                            className="w-full p-4 border border-[#2D2D3B] rounded-xl focus:ring-2 focus:ring-[#8E54E9]/20 focus:border-[#8E54E9] outline-none resize-none bg-[#1A1A24] text-white text-base"
+                            rows="4"
+                            value={editContent}
+                            onChange={(e) => setEditContent(e.target.value)}
+                        />
+                        <div className="flex justify-end gap-2 mt-3">
                             <button
-                                onClick={() => setShowDeleteModal(false)}
-                                className="px-4 py-2 text-sm text-gray-400 hover:bg-[#2A2A3A] hover:text-white border border-[#2D2D3B] rounded-lg font-medium transition-colors"
+                                onClick={() => setIsEditing(false)}
+                                className="px-4 py-2 text-sm text-gray-400 hover:bg-[#2A2A3A] border border-[#2D2D3B] rounded-lg transition-colors"
                             >
                                 Cancel
                             </button>
                             <button
-                                onClick={handleDelete}
-                                className="px-4 py-2 text-sm bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors"
+                                onClick={handleUpdate}
+                                className="px-4 py-2 text-sm bg-[#8E54E9] text-white rounded-lg hover:bg-[#7A42E4] transition-colors shadow-lg shadow-[#8E54E9]/20"
                             >
-                                Delete
+                                Save Changes
                             </button>
                         </div>
                     </div>
-                </div>
-            )}
-
-            {/* Header */}
-            <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-3">
-                    <Link to={`/profile/${post.author._id}`}>
-                        {post.author.profilePic ? (
-                            <img
-                                src={post.author.profilePic}
-                                alt={post.author.name}
-                                className="h-10 w-10 rounded-full object-cover ring-2 ring-gray-50"
-                            />
-                        ) : (
-                            <div className="h-10 w-10 rounded-full bg-[#2A2A3A] flex items-center justify-center text-gray-400 font-bold border border-[#2D2D3B]">
-                                {post.author.name?.[0]?.toUpperCase()}
-                            </div>
-                        )}
-                    </Link>
-                    <div>
-                        <Link to={`/profile/${post.author._id}`} className="font-semibold text-white hover:text-[#8E54E9] transition-colors block leading-tight">
-                            {post.author.name}
-                        </Link>
-                        <p className="text-xs text-gray-500 mt-0.5">
-                            {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}
-                        </p>
+                ) : (
+                    <div className="mb-4">
+                        <p className="text-gray-300 leading-relaxed whitespace-pre-wrap text-[15px]">{post.content}</p>
                     </div>
-                </div>
+                )}
 
-                {/* 3 Dots Menu */}
-                <div className="relative" ref={menuRef}>
-                    <button
-                        onClick={() => setShowMenu(!showMenu)}
-                        className="text-gray-400 hover:text-white p-2 rounded-full hover:bg-[#2A2A3A] transition-colors focus:bg-[#2A2A3A] focus:outline-none"
-                    >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z"></path>
-                        </svg>
-                    </button>
+                {post.image && (
+                    <div className="mb-5 rounded-xl overflow-hidden border border-[#2D2D3B] relative group">
+                        {post.imageFlag && (
+                            <>
+                                {/* Warning badge - top left */}
+                                <div className="absolute top-3 left-3 flex items-center gap-2 px-3 py-1.5 bg-black/80 backdrop-blur-md text-white text-xs font-bold rounded-lg shadow-lg border border-red-500/30 z-10 pointer-events-none">
+                                    <svg className="w-4 h-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                    </svg>
+                                    <span className="tracking-wide uppercase">
+                                        {post.imageFlag === "violence" ? "Violent Content" :
+                                            post.imageFlag === "nsfw" ? "NSFW Content" :
+                                                post.imageFlag === "toxic_text" ? "Contains Toxic Text" :
+                                                    "Content Warning"}
+                                    </span>
+                                </div>
 
-                    {showMenu && (
-                        <div className="absolute right-0 mt-2 w-48 bg-[#232330] rounded-xl shadow-2xl z-20 border border-[#2D2D3B] py-1 overflow-hidden animate-in fade-in zoom-in duration-150 origin-top-right">
-                            {isOwner ? (
-                                <>
-                                    <button
-                                        onClick={() => { setIsEditing(true); setShowMenu(false); }}
-                                        className="block w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-[#2A2A3A] transition-colors"
-                                    >
-                                        Edit Post
-                                    </button>
-                                    <button
-                                        onClick={() => { setShowDeleteModal(true); setShowMenu(false); }}
-                                        className="block w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-500/10 transition-colors"
-                                    >
-                                        Delete Post
-                                    </button>
-                                </>
-                            ) : (
+                                {/* Eye toggle - top right */}
                                 <button
-                                    onClick={() => { setShowReportModal(true); setShowMenu(false); }}
-                                    className="block w-full text-left px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
+                                    onClick={() => setShowFlaggedImage(prev => !prev)}
+                                    title={showFlaggedImage ? "Hide image" : "Show image"}
+                                    className="absolute top-3 right-3 z-10 flex items-center gap-1.5 px-3 py-1.5 bg-black/80 backdrop-blur-md text-white text-xs font-semibold rounded-lg shadow-lg border border-white/10 hover:bg-white/10 transition-colors"
                                 >
-                                    🚩 Report Post
+                                    {showFlaggedImage ? (
+                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                                        </svg>
+                                    ) : (
+                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        </svg>
+                                    )}
+                                    {showFlaggedImage ? "Hide" : "View"}
                                 </button>
-                            )}
-                        </div>
-                    )}
-                </div>
-            </div>
+                            </>
+                        )}
+                        <img
+                            src={post.image}
+                            alt="Post content"
+                            className={`w-full h-auto object-cover max-h-[500px] transition-all duration-500 ${post.imageFlag && !showFlaggedImage ? 'blur-xl brightness-50 scale-105' : ''}`}
+                        />
+                    </div>
+                )}
 
-            {/* Content */}
-            {isEditing ? (
-                <div className="mb-4">
-                    <textarea
-                        className="w-full p-4 border border-[#2D2D3B] rounded-xl focus:ring-2 focus:ring-[#8E54E9]/20 focus:border-[#8E54E9] outline-none resize-none bg-[#1A1A24] text-white text-base"
-                        rows="4"
-                        value={editContent}
-                        onChange={(e) => setEditContent(e.target.value)}
-                    />
-                    <div className="flex justify-end gap-2 mt-3">
+                {/* Moderation Badge */}
+                {post.isModerated && (
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-600 text-xs font-medium rounded-full mb-4">
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        AI Moderated
+                    </div>
+                )}
+
+                {/* Actions Bar */}
+                <div className="flex items-center justify-between pt-4 border-t border-[#2D2D3B]">
+                    <div className="flex items-center gap-6">
                         <button
-                            onClick={() => setIsEditing(false)}
-                            className="px-4 py-2 text-sm text-gray-400 hover:bg-[#2A2A3A] border border-[#2D2D3B] rounded-lg transition-colors"
+                            onClick={handleLike}
+                            className={`flex items-center gap-2 text-sm font-medium transition-colors ${isLiked ? 'text-pink-500' : 'text-gray-400 hover:text-gray-200'}`}
                         >
-                            Cancel
+                            {/* Heart Icon */}
+                            <svg className={`w-5 h-5 ${isLiked ? 'fill-current' : 'stroke-current fill-none'}`} viewBox="0 0 24 24" strokeWidth="2">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                            </svg>
+                            <span>{post.likes.length}</span>
                         </button>
+
                         <button
-                            onClick={handleUpdate}
-                            className="px-4 py-2 text-sm bg-[#8E54E9] text-white rounded-lg hover:bg-[#7A42E4] transition-colors shadow-lg shadow-[#8E54E9]/20"
+                            onClick={() => setShowComments(!showComments)}
+                            className="flex items-center gap-2 text-sm font-medium text-gray-400 hover:text-gray-200 transition-colors"
                         >
-                            Save Changes
+                            {/* Chat Bubble Icon */}
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                            </svg>
+                            {totalComments > 0 ? (
+                                <span>{totalComments}</span>
+                            ) : (
+                                <span>Comment</span>
+                            )}
                         </button>
                     </div>
-                </div>
-            ) : (
-                <div className="mb-4">
-                    <p className="text-gray-300 leading-relaxed whitespace-pre-wrap text-[15px]">{post.content}</p>
-                </div>
-            )}
 
-            {post.image && (
-                <div className="mb-5 rounded-xl overflow-hidden border border-[#2D2D3B] relative group">
-                    {post.imageFlag && (
-                        <>
-                            {/* Warning badge - top left */}
-                            <div className="absolute top-3 left-3 flex items-center gap-2 px-3 py-1.5 bg-black/80 backdrop-blur-md text-white text-xs font-bold rounded-lg shadow-lg border border-red-500/30 z-10 pointer-events-none">
-                                <svg className="w-4 h-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                </svg>
-                                <span className="tracking-wide uppercase">
-                                    {post.imageFlag === "violence" ? "Violent Content" : 
-                                     post.imageFlag === "nsfw" ? "NSFW Content" : 
-                                     post.imageFlag === "toxic_text" ? "Contains Toxic Text" : 
-                                     "Content Warning"}
-                                </span>
-                            </div>
+                    {/* Share/Bookmark placeholder - could be added here for balance */}
+                </div>
 
-                            {/* Eye toggle - top right */}
-                            <button
-                                onClick={() => setShowFlaggedImage(prev => !prev)}
-                                title={showFlaggedImage ? "Hide image" : "Show image"}
-                                className="absolute top-3 right-3 z-10 flex items-center gap-1.5 px-3 py-1.5 bg-black/80 backdrop-blur-md text-white text-xs font-semibold rounded-lg shadow-lg border border-white/10 hover:bg-white/10 transition-colors"
-                            >
-                                {showFlaggedImage ? (
-                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                                    </svg>
+                {/* Comments Section */}
+                {showComments && (
+                    <div className="mt-4 pt-0">
+                        <div className="mb-6 mt-2">
+                            <form onSubmit={handleComment} className="flex items-center gap-3 relative">
+                                {currentUser?.profilePic ? (
+                                    <img src={currentUser.profilePic} alt="" className="w-8 h-8 rounded-full object-cover ring-1 ring-gray-100" />
                                 ) : (
-                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                    </svg>
+                                    <div className="w-8 h-8 rounded-full bg-[#2A2A3A] flex items-center justify-center text-gray-400 text-xs font-bold">
+                                        {currentUser?.name?.[0]}
+                                    </div>
                                 )}
-                                {showFlaggedImage ? "Hide" : "View"}
-                            </button>
-                        </>
-                    )}
-                    <img 
-                        src={post.image} 
-                        alt="Post content" 
-                        className={`w-full h-auto object-cover max-h-[500px] transition-all duration-500 ${post.imageFlag && !showFlaggedImage ? 'blur-xl brightness-50 scale-105' : ''}`} 
-                    />
-                </div>
-            )}
+                                <div className="flex-1 relative">
+                                    <input
+                                        type="text"
+                                        value={commentText}
+                                        onChange={(e) => setCommentText(e.target.value)}
+                                        placeholder="Write a comment..."
+                                        className="w-full bg-[#1A1A24] text-white border border-transparent hover:border-[#2D2D3B] focus:border-[#8E54E9] rounded-full pl-4 pr-12 py-2.5 text-sm focus:outline-none focus:ring-0 transition-colors placeholder-gray-500"
+                                    />
+                                    {commentText.trim() && (
+                                        <button
+                                            type="submit"
+                                            disabled={isSubmittingComment || isValidatingComment}
+                                            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 p-1.5 rounded-full hover:bg-[#2A2A3A] hover:text-white transition-colors disabled:opacity-50"
+                                        >
+                                            {isValidatingComment ? (
+                                                <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                                            ) : (
+                                                <svg className="w-4 h-4 transform rotate-90" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+                                                </svg>
+                                            )}
+                                        </button>
+                                    )}
+                                </div>
+                            </form>
 
-            {/* Moderation Badge */}
-            {post.isModerated && (
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-600 text-xs font-medium rounded-full mb-4">
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                    AI Moderated
-                </div>
-            )}
-
-            {/* Actions Bar */}
-            <div className="flex items-center justify-between pt-4 border-t border-[#2D2D3B]">
-                <div className="flex items-center gap-6">
-                    <button
-                        onClick={handleLike}
-                        className={`flex items-center gap-2 text-sm font-medium transition-colors ${isLiked ? 'text-pink-500' : 'text-gray-400 hover:text-gray-200'}`}
-                    >
-                        {/* Heart Icon */}
-                        <svg className={`w-5 h-5 ${isLiked ? 'fill-current' : 'stroke-current fill-none'}`} viewBox="0 0 24 24" strokeWidth="2">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                        </svg>
-                        <span>{post.likes.length}</span>
-                    </button>
-
-                    <button
-                        onClick={() => setShowComments(!showComments)}
-                        className="flex items-center gap-2 text-sm font-medium text-gray-400 hover:text-gray-200 transition-colors"
-                    >
-                        {/* Chat Bubble Icon */}
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                        </svg>
-                        {totalComments > 0 ? (
-                            <span>{totalComments}</span>
-                        ) : (
-                            <span>Comment</span>
-                        )}
-                    </button>
-                </div>
-
-                {/* Share/Bookmark placeholder - could be added here for balance */}
-            </div>
-
-            {/* Comments Section */}
-            {showComments && (
-                <div className="mt-4 pt-0">
-                    <div className="mb-6 mt-2">
-                        <form onSubmit={handleComment} className="flex items-center gap-3 relative">
-                            {currentUser?.profilePic ? (
-                                <img src={currentUser.profilePic} alt="" className="w-8 h-8 rounded-full object-cover ring-1 ring-gray-100" />
-                            ) : (
-                                <div className="w-8 h-8 rounded-full bg-[#2A2A3A] flex items-center justify-center text-gray-400 text-xs font-bold">
-                                    {currentUser?.name?.[0]}
+                            {/* Comment Moderation Warning Banner */}
+                            {commentModerationWarning && (
+                                <div className="mt-2 ml-11">
+                                    <ModerationWarning
+                                        suggestedText={commentModerationWarning.suggested}
+                                        onSuggestedTextChange={(val) => setCommentModerationWarning(prev => ({ ...prev, suggested: val }))}
+                                        onAccept={handleCommentAcceptModeration}
+                                        onCancel={() => { setCommentModerationWarning(null); setCommentText(''); }}
+                                    />
                                 </div>
                             )}
-                            <div className="flex-1 relative">
-                                <input
-                                    type="text"
-                                    value={commentText}
-                                    onChange={(e) => setCommentText(e.target.value)}
-                                    placeholder="Write a comment..."
-                                    className="w-full bg-[#1A1A24] text-white border border-transparent hover:border-[#2D2D3B] focus:border-[#8E54E9] rounded-full pl-4 pr-12 py-2.5 text-sm focus:outline-none focus:ring-0 transition-colors placeholder-gray-500"
-                                />
-                                {commentText.trim() && (
-                                    <button
-                                        type="submit"
-                                        disabled={isSubmittingComment || isValidatingComment}
-                                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 p-1.5 rounded-full hover:bg-[#2A2A3A] hover:text-white transition-colors disabled:opacity-50"
-                                    >
-                                        {isValidatingComment ? (
-                                            <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-                                        ) : (
-                                            <svg className="w-4 h-4 transform rotate-90" fill="currentColor" viewBox="0 0 20 20">
-                                                <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
-                                            </svg>
-                                        )}
-                                    </button>
-                                )}
-                            </div>
-                        </form>
+                        </div>
 
-                        {/* Comment Moderation Warning Banner */}
-                        {commentModerationWarning && (
-                            <div className="mt-2 ml-11">
-                                <ModerationWarning
-                                    suggestedText={commentModerationWarning.suggested}
-                                    onSuggestedTextChange={(val) => setCommentModerationWarning(prev => ({ ...prev, suggested: val }))}
-                                    onAccept={handleCommentAcceptModeration}
-                                    onCancel={() => { setCommentModerationWarning(null); setCommentText(''); }}
+                        <div className="space-y-4">
+                            {post.comments.map((comment) => (
+                                <CommentItem
+                                    key={comment._id}
+                                    comment={comment}
+                                    postId={post._id}
+                                    postAuthorId={post.author._id}
+                                    onUpdateComments={(updatedComments) => onPostUpdated({ ...post, comments: updatedComments })}
                                 />
-                            </div>
-                        )}
+                            ))}
+                        </div>
                     </div>
+                )}
 
-                    <div className="space-y-4">
-                        {post.comments.map((comment) => (
-                            <CommentItem
-                                key={comment._id}
-                                comment={comment}
-                                postId={post._id}
-                                postAuthorId={post.author._id}
-                                onUpdateComments={(updatedComments) => onPostUpdated({ ...post, comments: updatedComments })}
-                            />
-                        ))}
-                    </div>
-                </div>
+            </div>
+
+            {/* Report Modal */}
+            {showReportModal && (
+                <ReportModal
+                    post={post}
+                    onClose={() => setShowReportModal(false)}
+                    onPostRemoved={onPostDeleted}
+                />
             )}
-
-        </div>
-
-        {/* Report Modal */}
-        {showReportModal && (
-            <ReportModal
-                post={post}
-                onClose={() => setShowReportModal(false)}
-                onPostRemoved={onPostDeleted}
-            />
-        )}
         </>
     );
 };
