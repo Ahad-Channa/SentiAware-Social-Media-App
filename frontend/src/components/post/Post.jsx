@@ -325,6 +325,11 @@ const Post = ({ post, onPostUpdated, onPostDeleted }) => {
     const menuRef = useRef(null);
 
     const currentUser = JSON.parse(localStorage.getItem('user'));
+    
+    if (!post || !post.author) {
+        return null;
+    }
+
     const isLiked = post.likes.some(id => id === currentUser?.id || id === currentUser?._id);
     const isOwner = currentUser && (currentUser._id === post.author._id || currentUser.id === post.author._id);
 
