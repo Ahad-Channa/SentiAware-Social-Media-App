@@ -48,7 +48,7 @@ const TutorialModal = ({ isOpen, onClose }) => {
         },
         {
             title: "Community Driven 🚩",
-            description: "See something inappropriate despite our filters? You can flag or hide posts, giving power directly back to the community.",
+            description: "See something inappropriate despite our filters? You can report posts and our system will automatically apply filters or take action, giving power back to the community.",
             icon: (
                 <div className="bg-rose-500/20 p-6 rounded-full inline-block mb-2 ring-4 ring-rose-500/30">
                     <svg className="w-16 h-16 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
