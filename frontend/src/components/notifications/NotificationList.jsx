@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { fetchNotifications, markRead } from '../../redux/notificationSlice';
 import NotificationItem from './NotificationItem';
 
-const NotificationList = ({ onClose }) => {
+const NotificationList = ({ onClose, onOpenTutorial }) => {
     const dispatch = useDispatch();
     const { items, loading, error } = useSelector((state) => state.notifications);
 
@@ -45,6 +45,7 @@ const NotificationList = ({ onClose }) => {
                             key={notification._id}
                             notification={notification}
                             onMarkRead={handleMarkRead}
+                            onOpenTutorial={onOpenTutorial}
                         />
                     ))
                 )}

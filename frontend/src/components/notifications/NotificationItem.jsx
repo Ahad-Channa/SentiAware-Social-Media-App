@@ -3,7 +3,7 @@ import { formatDistanceToNow } from 'date-fns';
 
 import { useNavigate } from 'react-router-dom';
 
-const NotificationItem = ({ notification, onMarkRead }) => {
+const NotificationItem = ({ notification, onMarkRead, onOpenTutorial }) => {
     const navigate = useNavigate();
 
     // Support both old (relatedId as user) and new (sender/post fields) schema
@@ -12,6 +12,11 @@ const NotificationItem = ({ notification, onMarkRead }) => {
 
     const handleClick = () => {
         onMarkRead(notification._id);
+
+        if (notification.type === 'system' && notification.message.includes('Welcome to SentiAware')) {
+            if (onOpenTutorial) onOpenTutorial();
+            return;
+        }
 
         if (isPostNotification && notification.post) {
             // If it's a post notification, go to the post

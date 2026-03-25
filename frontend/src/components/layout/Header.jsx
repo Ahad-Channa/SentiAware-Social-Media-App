@@ -8,6 +8,7 @@ import { fetchUnreadChatsCount } from "../../redux/chatSlice";
 import UserSearch from "../search/UserSearch";
 import NotificationList from "../notifications/NotificationList";
 import { useSocketContext } from "../../context/SocketContext";
+import TutorialModal from "../tutorial/TutorialModal";
 
 const Header = () => {
   const dispatch = useDispatch();
@@ -19,6 +20,7 @@ const Header = () => {
 
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
 
   const notificationRef = useRef(null);
   const userMenuRef = useRef(null);
@@ -61,7 +63,8 @@ const Header = () => {
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-[#1A1A24] border-b border-[#2D2D3B] shadow-sm">
+    <>
+      <header className="sticky top-0 z-50 bg-[#1A1A24] border-b border-[#2D2D3B] shadow-sm">
       <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
         <div className="flex justify-between items-center h-14 md:h-16">
 
@@ -145,7 +148,13 @@ const Header = () => {
 
               {showNotifications && (
                 <div className="absolute right-0 mt-3 origin-top-right z-50">
-                  <NotificationList onClose={() => setShowNotifications(false)} />
+                  <NotificationList 
+                    onClose={() => setShowNotifications(false)} 
+                    onOpenTutorial={() => {
+                        setShowNotifications(false);
+                        setShowTutorial(true);
+                    }}
+                  />
                 </div>
               )}
             </div>
@@ -190,6 +199,16 @@ const Header = () => {
                          <svg className="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                          Settings
                       </Link>
+                      <button
+                        onClick={() => {
+                            setShowUserMenu(false);
+                            setShowTutorial(true);
+                        }}
+                        className="block w-full text-left flex items-center gap-2 px-4 py-2 text-sm text-gray-300 hover:bg-[#2A2A3A] transition-colors"
+                      >
+                         <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                         Platform Tutorial
+                      </button>
                     </div>
 
                   <div className="border-t border-[#2D2D3B] py-1">
@@ -208,6 +227,8 @@ const Header = () => {
         </div>
       </div>
     </header>
+    <TutorialModal isOpen={showTutorial} onClose={() => setShowTutorial(false)} />
+    </>
   );
 };
 

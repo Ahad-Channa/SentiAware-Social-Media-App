@@ -239,7 +239,7 @@ export const registerVerify = async (req, res) => {
     try {
       await Notification.create({
         recipient: user._id,
-        message: "Welcome to SentiAware! Complete your profile to get started.",
+        message: "Welcome to SentiAware! Complete your profile to get started. Click here for a short tutorial.",
         type: "system",
       });
     } catch (err) {
@@ -306,7 +306,7 @@ export const registerUser = async (req, res) => {
     try {
       await Notification.create({
         recipient: user._id,
-        message: "Welcome to SentiAware! Complete your profile to get started.",
+        message: "Welcome to SentiAware! Complete your profile to get started. Click here for a short tutorial.",
         type: "system",
       });
     } catch (err) {
