@@ -144,7 +144,7 @@ const Header = () => {
               </button>
 
               {showNotifications && (
-                <div className="absolute right-0 mt-3 w-80 sm:w-96 origin-top-right z-50">
+                <div className="absolute right-0 mt-3 origin-top-right z-50">
                   <NotificationList onClose={() => setShowNotifications(false)} />
                 </div>
               )}

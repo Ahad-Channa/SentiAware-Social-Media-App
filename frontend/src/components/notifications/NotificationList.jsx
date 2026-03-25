@@ -24,7 +24,7 @@ const NotificationList = ({ onClose }) => {
     }
 
     return (
-        <div className="absolute right-0 mt-2 w-80 bg-[#232330] rounded-xl shadow-2xl border border-[#2D2D3B] overflow-hidden z-50 animate-in fade-in zoom-in duration-150 origin-top-right">
+        <div className="absolute right-0 mt-2 w-72 sm:w-80 bg-[#232330] rounded-xl shadow-2xl border border-[#2D2D3B] overflow-hidden z-50 animate-in fade-in zoom-in duration-150 origin-top-right">
             <div className="p-3 border-b border-[#2D2D3B] bg-[#1A1A24] flex justify-between items-center">
                 <h3 className="font-semibold text-white">Notifications</h3>
                 {onClose && (
