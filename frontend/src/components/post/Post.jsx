@@ -321,6 +321,9 @@ const Post = ({ post, onPostUpdated, onPostDeleted }) => {
 
     // Flagged image reveal toggle
     const [showFlaggedImage, setShowFlaggedImage] = useState(false);
+    
+    // Like button loader
+    const [isLiking, setIsLiking] = useState(false);
 
     const menuRef = useRef(null);
 
@@ -347,11 +350,15 @@ const Post = ({ post, onPostUpdated, onPostDeleted }) => {
     }, []);
 
     const handleLike = async () => {
+        if (isLiking) return;
+        setIsLiking(true);
         try {
             const updatedLikes = await likePost(post._id);
             onPostUpdated({ ...post, likes: updatedLikes });
         } catch (error) {
             console.error("Error liking post:", error);
+        } finally {
+            setIsLiking(false);
         }
     };
 
@@ -602,7 +609,8 @@ const Post = ({ post, onPostUpdated, onPostDeleted }) => {
                     <div className="flex items-center gap-6">
                         <button
                             onClick={handleLike}
-                            className={`flex items-center gap-2 text-sm font-medium transition-colors ${isLiked ? 'text-pink-500' : 'text-gray-400 hover:text-gray-200'}`}
+                            disabled={isLiking}
+                            className={`flex items-center gap-2 text-sm font-medium transition-colors ${isLiked ? 'text-pink-500' : 'text-gray-400 hover:text-gray-200'} ${isLiking ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
                             {/* Heart Icon */}
                             <svg className={`w-5 h-5 ${isLiked ? 'fill-current' : 'stroke-current fill-none'}`} viewBox="0 0 24 24" strokeWidth="2">

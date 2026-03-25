@@ -262,9 +262,11 @@ export const likePost = async (req, res) => {
 
         // Check if post has already been liked
         if (post.likes.includes(req.user._id)) {
-            // Unlike
-            post.likes = post.likes.filter(
-                (id) => id.toString() !== req.user._id.toString()
+            // Unlike - Atomically remove from array
+            const updatedPost = await Post.findByIdAndUpdate(
+                req.params.id,
+                { $pull: { likes: req.user._id } },
+                { new: true }
             );
 
             // Remove corresponding like notification
@@ -274,26 +276,36 @@ export const likePost = async (req, res) => {
                 type: "like",
                 post: post._id
             });
+            
+            return res.json(updatedPost.likes);
         } else {
-            // Like
-            post.likes.push(req.user._id);
+            // Like - Atomically add to array if not present
+            const updatedPost = await Post.findOneAndUpdate(
+                { _id: req.params.id, likes: { $ne: req.user._id } },
+                { $addToSet: { likes: req.user._id } },
+                { new: true }
+            );
 
-            // Create Notification if not self-like
-            if (post.author.toString() !== req.user._id.toString()) {
-                const newNotification = new Notification({
-                    recipient: post.author,
-                    sender: req.user._id,
-                    type: "like",
-                    post: post._id,
-                    message: `${req.user.name} liked your post.`,
-                    relatedId: req.user._id // Backup for old frontend logic
-                });
-                await newNotification.save();
+            if (updatedPost) {
+                // Create Notification if not self-like
+                if (post.author.toString() !== req.user._id.toString()) {
+                    const newNotification = new Notification({
+                        recipient: post.author,
+                        sender: req.user._id,
+                        type: "like",
+                        post: post._id,
+                        message: `${req.user.name} liked your post.`,
+                        relatedId: req.user._id // Backup for old frontend logic
+                    });
+                    await newNotification.save();
+                }
+                return res.json(updatedPost.likes);
+            } else {
+                // Post was already liked concurrently
+                const currentPost = await Post.findById(req.params.id);
+                return res.json(currentPost ? currentPost.likes : post.likes);
             }
         }
-
-        await post.save();
-        res.json(post.likes);
     } catch (error) {
         console.error("Error liking post:", error);
         res.status(500).json({ message: "Server error" });
