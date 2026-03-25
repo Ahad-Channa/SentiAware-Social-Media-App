@@ -85,16 +85,16 @@ const Header = () => {
             <NavLink
               to="/chat"
               className={({ isActive }) =>
-                `p-1.5 md:p-2.5 rounded-lg transition-all duration-200 group relative ${isActive
+                `p-2 md:p-2.5 rounded-lg transition-all duration-200 group relative ${isActive
                   ? "text-white bg-[#232330]"
                   : "text-gray-400 hover:bg-[#232330] hover:text-white"
                 }`
               }
               title="Messages"
             >
-              <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
+              <svg className="w-[22px] h-[22px] md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
               {unreadChatsCount > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-4 w-4 md:h-5 md:w-5 items-center justify-center rounded-full bg-red-500 text-[9px] md:text-[10px] font-bold text-white border-2 border-[#1A1A24]">
+                <span className="absolute 0 -right-1 flex h-[18px] w-[18px] md:h-5 md:w-5 items-center justify-center rounded-full bg-red-500 text-[10px] md:text-[10px] font-bold text-white border-2 border-[#1A1A24]">
                   {unreadChatsCount}
                 </span>
               )}
@@ -104,42 +104,42 @@ const Header = () => {
             <NavLink
               to="/friends"
               className={({ isActive }) =>
-                `p-1.5 md:p-2.5 rounded-lg transition-all duration-200 group relative ${isActive
+                `p-2 md:p-2.5 rounded-lg transition-all duration-200 group relative ${isActive
                   ? "text-white bg-[#232330]"
                   : "text-gray-400 hover:bg-[#232330] hover:text-white"
                 }`
               }
               title="Friends"
             >
-              <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+              <svg className="w-[22px] h-[22px] md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
             </NavLink>
 
             {/* Feed Icon */}
             <NavLink
               to="/feed"
               className={({ isActive }) =>
-                `p-1.5 md:p-2.5 rounded-lg transition-all duration-200 group relative ${isActive
+                `p-2 md:p-2.5 rounded-lg transition-all duration-200 group relative ${isActive
                   ? "text-white bg-slate-800"
                   : "text-slate-400 hover:bg-slate-800 hover:text-white"
                 }`
               }
               title="Feed"
             >
-              <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"></path></svg>
+              <svg className="w-[22px] h-[22px] md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"></path></svg>
             </NavLink>
 
             {/* Notification Bell */}
             <div className="relative" ref={notificationRef}>
               <button
-                className={`relative p-1.5 md:p-2.5 text-gray-400 hover:text-white hover:bg-[#232330] rounded-lg transition-colors focus:outline-none ${showNotifications ? 'bg-[#232330] text-white' : ''}`}
+                className={`relative p-2 md:p-2.5 text-gray-400 hover:text-white hover:bg-[#232330] rounded-lg transition-colors focus:outline-none ${showNotifications ? 'bg-[#232330] text-white' : ''}`}
                 onClick={() => setShowNotifications(!showNotifications)}
               >
-                <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                <svg className="w-[22px] h-[22px] md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                 </svg>
 
                 {unreadCount > 0 && (
-                  <span className="absolute top-1 right-1 md:top-2 md:right-2 h-2 w-2 bg-red-500 rounded-full border border-white"></span>
+                  <span className="absolute top-1.5 right-1.5 md:top-2 md:right-2 h-2 w-2 bg-red-500 rounded-full border border-white"></span>
                 )}
               </button>
 
@@ -156,7 +156,7 @@ const Header = () => {
                 onClick={() => setShowUserMenu(!showUserMenu)}
                 className="flex items-center focus:outline-none"
               >
-                <div className="h-7 w-7 md:h-8 md:w-8 rounded-full overflow-hidden border border-[#2D2D3B] hover:border-gray-500 transition-colors">
+                <div className="h-8 w-8 rounded-full overflow-hidden border border-[#2D2D3B] hover:border-gray-500 transition-colors">
                   {user?.profilePic ? (
                     <img src={user.profilePic} alt="User" className="h-full w-full object-cover" />
                   ) : (
