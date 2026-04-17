@@ -21,7 +21,15 @@ const FLAG_TO_CATEGORY = {
 };
 
 const ReportModal = ({ post, onClose, onPostRemoved }) => {
-    const defaultCategory = FLAG_TO_CATEGORY[post.imageFlag] || "";
+    const getInitialCategory = (flagStr) => {
+        if (!flagStr) return "";
+        const flags = flagStr.split(',').map(f => f.trim());
+        for (const flag of flags) {
+            if (FLAG_TO_CATEGORY[flag]) return FLAG_TO_CATEGORY[flag];
+        }
+        return "";
+    };
+    const defaultCategory = getInitialCategory(post.imageFlag);
     const [category, setCategory] = useState(defaultCategory);
     const [note, setNote] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);

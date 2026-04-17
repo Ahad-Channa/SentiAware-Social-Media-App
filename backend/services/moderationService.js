@@ -52,7 +52,7 @@ export const analyzeText = async (text) => {
 // Analyze image for harmful content and check extracted text toxicity
 export const analyzeImage = async (imageBuffer, mimetype = "image/jpeg") => {
     try {
-        const hfSpaceUrl = process.env.HF_IMAGE_MODEL_URL || "https://ahad-channa-senti-image.hf.space";
+        const hfSpaceUrl = process.env.HF_IMAGE_MODEL_URL || "https://ahad-channa-senti-image-v2.hf.space";
         
         // Use Node 18+ native Blob and FormData to send multipart/form-data via Axios
         const blob = new Blob([imageBuffer], { type: mimetype });
@@ -63,26 +63,25 @@ export const analyzeImage = async (imageBuffer, mimetype = "image/jpeg") => {
 
         const data = response.data;
         
-        // Rule 1: Visual Image Classification Check
-        if (data.nsfw || data.harmful) {
-            let reason = "Image contains inappropriate content";
-            let type = "unknown";
-            
-            if (data.harmful) {
-                reason = "Image contains violence";
-                type = "violence";
-            } else if (data.nsfw) {
-                reason = "Image contains nudity/NSFW";
-                type = "nsfw";
-            }
-            
-            return {
-                safe: false,
-                reason: reason,
-                type: type,
-                score: data.confidence,
-                extracted_text: data.extracted_text
-            };
+        let reasons = [];
+        let types = [];
+        let maxScore = data.confidence || 0;
+        let isSafe = true;
+
+        if (data.harmful) {
+            reasons.push("Image contains violence");
+            types.push("violence");
+            isSafe = false;
+        } 
+        if (data.nsfw) {
+            reasons.push("Image contains nudity/NSFW");
+            types.push("nsfw");
+            isSafe = false;
+        }
+        if (data.meme) {
+            reasons.push("Image is a meme");
+            types.push("meme");
+            isSafe = false;
         }
 
         // Sanity Check: If OCR text is likely a diagram, code snippet, or highly unstructured, skip toxicity check
@@ -93,25 +92,32 @@ export const analyzeImage = async (imageBuffer, mimetype = "image/jpeg") => {
             return specialCharRatio > 0.10 || hasTechKeywords;
         };
 
-        // Rule 2 & 3: OCR Extracted Text Toxicity Check
+        // OCR Extracted Text Toxicity Check
         if (data.extracted_text && data.extracted_text.trim() !== "") {
             if (!isLikelyDiagramOrCode(data.extracted_text)) {
                 const textCheck = await analyzeText(data.extracted_text);
                 if (!textCheck.safe) {
-                    return {
-                        safe: false,
-                        reason: "Text inside the image contains toxic content",
-                        type: "toxic_text",
-                        score: textCheck.score,
-                        extracted_text: data.extracted_text
-                    };
+                    reasons.push("Text inside the image contains toxic content");
+                    types.push("toxic_text");
+                    isSafe = false;
+                    maxScore = Math.max(maxScore, textCheck.score || 0);
                 }
             } else {
                 console.log("Skipped text toxicity check for diagram/code block.");
             }
         }
 
-        // Rule 4: Both image and text are safe
+        if (!isSafe) {
+            return {
+                safe: false,
+                reason: reasons.join(" AND "),
+                type: types.join(","),
+                score: maxScore,
+                extracted_text: data.extracted_text
+            };
+        }
+
+        // Both image and text are safe
         return {
             safe: true,
             reason: null,
