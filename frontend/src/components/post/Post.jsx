@@ -322,6 +322,9 @@ const Post = ({ post, onPostUpdated, onPostDeleted }) => {
     // Flagged image reveal toggle
     const [showFlaggedImage, setShowFlaggedImage] = useState(false);
     
+    // Image expansion toggle
+    const [isImageFull, setIsImageFull] = useState(false);
+    
     // Like button loader
     const [isLiking, setIsLiking] = useState(false);
 
@@ -550,7 +553,10 @@ const Post = ({ post, onPostUpdated, onPostDeleted }) => {
                 )}
 
                 {post.image && (
-                    <div className="mb-5 rounded-xl overflow-hidden border border-[#2D2D3B] relative group">
+                    <div 
+                        onClick={() => post.imageFlag && !showFlaggedImage ? setShowFlaggedImage(true) : setIsImageFull(!isImageFull)}
+                        className={`mb-5 rounded-xl overflow-hidden border border-[#2D2D3B] relative group cursor-pointer transition-all duration-300 ${isImageFull ? 'max-h-none' : ''}`}
+                    >
                         {post.imageFlag && (
                             <>
                                 {/* Warning badge - top left */}
@@ -572,9 +578,9 @@ const Post = ({ post, onPostUpdated, onPostDeleted }) => {
 
                                 {/* Eye toggle - top right */}
                                 <button
-                                    onClick={() => setShowFlaggedImage(prev => !prev)}
+                                    onClick={(e) => { e.stopPropagation(); setShowFlaggedImage(prev => !prev); }}
                                     title={showFlaggedImage ? "Hide image" : "Show image"}
-                                    className="absolute top-3 right-3 z-10 flex items-center gap-1.5 px-3 py-1.5 bg-black/80 backdrop-blur-md text-white text-xs font-semibold rounded-lg shadow-lg border border-white/10 hover:bg-white/10 transition-colors"
+                                    className="absolute top-3 right-3 z-20 flex items-center gap-1.5 px-3 py-1.5 bg-black/80 backdrop-blur-md text-white text-xs font-semibold rounded-lg shadow-lg border border-white/10 hover:bg-white/10 transition-colors"
                                 >
                                     {showFlaggedImage ? (
                                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -593,7 +599,9 @@ const Post = ({ post, onPostUpdated, onPostDeleted }) => {
                         <img
                             src={post.image}
                             alt="Post content"
-                            className={`w-full h-auto object-cover max-h-[500px] transition-all duration-500 ${post.imageFlag && !showFlaggedImage ? 'blur-xl brightness-50 scale-105' : ''}`}
+                            className={`w-full h-auto transition-all duration-500 
+                                ${isImageFull ? 'max-h-none' : 'max-h-[500px] object-cover'} 
+                                ${post.imageFlag && !showFlaggedImage ? 'blur-xl brightness-50 scale-105' : ''}`}
                         />
                     </div>
                 )}
