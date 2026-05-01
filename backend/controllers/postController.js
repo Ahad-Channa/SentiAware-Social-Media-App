@@ -175,23 +175,31 @@ export const getFeedPosts = async (req, res) => {
     try {
         const currentUser = await User.findById(req.user._id);
         const friendIds = currentUser.friends;
+        const cursor = req.query.cursor;
+        const limit = parseInt(req.query.limit) || 10;
+
+        let query = { author: { $in: [...friendIds, req.user._id] } };
+        if (cursor) {
+            query.createdAt = { $lt: new Date(cursor) };
+        }
 
         // 1. Get recent posts from friends and user (Priority)
-        const friendPosts = await Post.find({ author: { $in: [...friendIds, req.user._id] } })
+        const friendPosts = await Post.find(query)
             .sort({ createdAt: -1 })
-            .limit(20)
+            .limit(limit)
             .populate("author", "name profilePic")
             .populate("comments.user", "name profilePic")
             .populate("comments.replies.user", "name profilePic");
 
         // 2. Get random suggested posts from non-friends (Discovery)
+        // Keep this small to not clutter pagination
         const suggestedPostsAgg = await Post.aggregate([
             {
                 $match: {
                     author: { $nin: [...friendIds, req.user._id] }
                 }
             },
-            { $sample: { size: 10 } }
+            { $sample: { size: cursor ? 0 : 3 } } // Only show suggestions on the first page
         ]);
 
         // Populate suggested posts since aggregate returns plain objects
@@ -203,8 +211,11 @@ export const getFeedPosts = async (req, res) => {
 
         // 3. Friends newest-first at top, discovery posts below
         const feedPosts = [...friendPosts, ...suggestedPosts];
+        
+        // Determine the next cursor based on the very last friend post fetched
+        const nextCursor = friendPosts.length === limit ? friendPosts[friendPosts.length - 1].createdAt : null;
 
-        res.json(feedPosts);
+        res.json({ posts: feedPosts, nextCursor });
     } catch (error) {
         console.error("Error fetching feed:", error);
         res.status(500).json({ message: "Server error" });
@@ -216,13 +227,24 @@ export const getFeedPosts = async (req, res) => {
 // @access  Private
 export const getUserPosts = async (req, res) => {
     try {
-        const posts = await Post.find({ author: req.params.userId })
+        const cursor = req.query.cursor;
+        const limit = parseInt(req.query.limit) || 10;
+
+        let query = { author: req.params.userId };
+        if (cursor) {
+            query.createdAt = { $lt: new Date(cursor) };
+        }
+
+        const posts = await Post.find(query)
             .sort({ createdAt: -1 })
+            .limit(limit)
             .populate("author", "name profilePic")
             .populate("comments.user", "name profilePic")
             .populate("comments.replies.user", "name profilePic");
+            
+        const nextCursor = posts.length === limit ? posts[posts.length - 1].createdAt : null;
 
-        res.json(posts);
+        res.json({ posts, nextCursor });
     } catch (error) {
         console.error("Error fetching user posts:", error);
         res.status(500).json({ message: "Server error" });

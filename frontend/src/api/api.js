@@ -75,13 +75,15 @@ export const validateCommentText = async (text) => {
   return res.data;
 };
 
-export const getFeedPosts = async () => {
-  const res = await api.get("/api/posts/feed");
+export const getFeedPosts = async (cursor = null, limit = 10) => {
+  const url = cursor ? `/api/posts/feed?cursor=${cursor}&limit=${limit}` : `/api/posts/feed?limit=${limit}`;
+  const res = await api.get(url);
   return res.data;
 };
 
-export const getUserPosts = async (userId) => {
-  const res = await api.get(`/api/posts/user/${userId}`);
+export const getUserPosts = async (userId, cursor = null, limit = 10) => {
+  const url = cursor ? `/api/posts/user/${userId}?cursor=${cursor}&limit=${limit}` : `/api/posts/user/${userId}?limit=${limit}`;
+  const res = await api.get(url);
   return res.data;
 };
 

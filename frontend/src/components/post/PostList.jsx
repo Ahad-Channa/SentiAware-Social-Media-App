@@ -6,22 +6,49 @@ const PostList = ({ userId, refreshTrigger, viewMode = 'list' }) => {
     const [posts, setPosts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [cursor, setCursor] = useState(null);
+    const [hasMore, setHasMore] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
 
     const fetchPosts = async () => {
         try {
             setLoading(true);
+            setCursor(null);
+            setHasMore(true);
             let data;
             if (userId) {
                 data = await getUserPosts(userId);
             } else {
                 data = await getFeedPosts();
             }
-            setPosts(data);
+            setPosts(data.posts || data);
+            setCursor(data.nextCursor || null);
+            if (!data.nextCursor) setHasMore(false);
         } catch (err) {
             console.error("Error fetching posts:", err);
             setError("Failed to load posts.");
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchMorePosts = async () => {
+        if (!hasMore || loadingMore) return;
+        try {
+            setLoadingMore(true);
+            let data;
+            if (userId) {
+                data = await getUserPosts(userId, cursor);
+            } else {
+                data = await getFeedPosts(cursor);
+            }
+            setPosts(prev => [...prev, ...(data.posts || data)]);
+            setCursor(data.nextCursor || null);
+            if (!data.nextCursor) setHasMore(false);
+        } catch (err) {
+            console.error("Error fetching more posts:", err);
+        } finally {
+            setLoadingMore(false);
         }
     };
 
@@ -108,6 +135,19 @@ const PostList = ({ userId, refreshTrigger, viewMode = 'list' }) => {
                     </div>
                 );
             })}
+            
+            {/* Load More Button */}
+            {hasMore && (
+                <div className={viewMode === 'grid' ? "md:col-span-2 text-center mt-6" : "text-center mt-6"}>
+                    <button 
+                        onClick={fetchMorePosts} 
+                        disabled={loadingMore}
+                        className="px-6 py-2 bg-[#2a2a3a] text-white rounded-full font-medium hover:bg-[#34344a] transition-colors disabled:opacity-50"
+                    >
+                        {loadingMore ? 'Loading...' : 'Load More'}
+                    </button>
+                </div>
+            )}
         </div>
     );
 };
