@@ -29,7 +29,6 @@ export const sendFriendRequest = async (req, res) => {
     if (myData.friendRequestsSent.map(toId).includes(other))
       return res.json({ message: "Request already sent" });
 
-    // if user received a request from them → auto accept?
     if (myData.friendRequestsReceived.map(toId).includes(other)) {
       return res.status(400).json({
         message: "User already sent you a request — accept instead",

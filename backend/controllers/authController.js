@@ -130,6 +130,8 @@ export const forgotPasswordVerify = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+
 export const registerInit = async (req, res) => {
   try {
     const { name, email, password, gender } = req.body;

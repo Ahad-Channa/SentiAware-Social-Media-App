@@ -14,7 +14,7 @@ const userSchema = new mongoose.Schema(
     nickname: { type: String, default: "" },
     gender: { type: String, enum: ["boy", "girl", "other"], required: true },
 
-    // ⭐ Added for Friend System
+    
     friends: [
       {
         type: mongoose.Schema.Types.ObjectId,

@@ -61,7 +61,7 @@ const FriendsList = () => {
                 </div>
 
                 <h3 className="text-lg font-bold text-white mb-1 group-hover:text-[#8E54E9] transition-colors">{f.name}</h3>
-                <p className="text-sm text-gray-400 mb-4">@{f.username || "user"}</p>
+                <p className="text-sm text-gray-400 mb-4">@{f.nickname || "user"}</p>
 
                 <span className="w-full py-2 bg-[#1A1A24] text-gray-300 text-sm font-semibold rounded-lg group-hover:bg-[#2A2A3A] transition-colors">
                   View Profile
