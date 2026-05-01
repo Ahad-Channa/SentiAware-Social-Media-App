@@ -510,12 +510,32 @@ const Post = ({ post, onPostUpdated, onPostDeleted }) => {
                                         </button>
                                     </>
                                 ) : (
-                                    <button
-                                        onClick={() => { setShowReportModal(true); setShowMenu(false); }}
-                                        className="block w-full text-left px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
-                                    >
-                                        🚩 Report Post
-                                    </button>
+                                    <>
+                                        <button
+                                            onClick={() => { setShowReportModal(true); setShowMenu(false); }}
+                                            className="block w-full text-left px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
+                                        >
+                                            🚩 Report Post
+                                        </button>
+                                        <button
+                                            onClick={async () => {
+                                                setShowMenu(false);
+                                                try {
+                                                    const api = (await import('../../api/api')).default;
+                                                    const res = await api.post(`/api/posts/${post._id}/appeal`);
+                                                    alert(res.data.message);
+                                                    if (res.data.message.includes("restored")) {
+                                                        onPostUpdated({...post, moderationStatus: "safe", imageFlag: ""});
+                                                    }
+                                                } catch (err) {
+                                                    alert(err.response?.data?.message || "Failed to appeal post");
+                                                }
+                                            }}
+                                            className="block w-full text-left px-4 py-2.5 text-sm text-green-400 hover:bg-green-500/10 transition-colors"
+                                        >
+                                            🛡️ Appeal / Vouch as Safe
+                                        </button>
+                                    </>
                                 )}
                             </div>
                         )}

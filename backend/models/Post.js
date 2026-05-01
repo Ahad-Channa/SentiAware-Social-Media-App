@@ -84,6 +84,12 @@ const postSchema = new mongoose.Schema(
             type: String, // e.g., "violence", "nsfw", "toxic_text"
             default: "",
         },
+        appeals: [
+            {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "User",
+            },
+        ],
     },
     { timestamps: true }
 );

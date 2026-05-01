@@ -16,7 +16,7 @@ import {
   getModerationLogs,
   getCommentModerationLogs,
 } from "../controllers/postController.js";
-import { reportPost } from "../controllers/reportController.js";
+import { reportPost, appealPost } from "../controllers/reportController.js";
 import protect from "../middleware/authMiddleware.js";
 import upload from "../middleware/uploadMiddleware.js";
 
@@ -53,5 +53,6 @@ router.put("/:id/comments/:commentId/hide", protect, hideComment);
 router.put("/:id", protect, updatePost);
 router.delete("/:id", protect, deletePost);
 router.post("/:id/report", protect, reportPost);
+router.post("/:id/appeal", protect, appealPost);
 
 export default router;

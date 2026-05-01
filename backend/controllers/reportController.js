@@ -5,49 +5,48 @@ import cloudinary from "../config/cloudinary.js";
 
 // Auto-removal thresholds
 const THRESHOLDS = {
-    // Posts already AI-flagged: lower bar since AI already suspects them
+    // Posts already AI-flagged
     flagged_ai: {
-        remove: 3,  // AI-flagged posts: auto-remove after 3 reports
+        remove: 10,  // AI-flagged posts: auto-remove after 10 reports
     },
     // Clean posts reported for NSFW/violence
     severe: {
         categories: ["nsfw", "violence"],
-        remove: 5,  // Auto-remove after 5 reports
+        remove: 50,  // Auto-remove after 50 reports
+        blur_badge: 15,
     },
     // Lower severity categories
     moderate: {
         categories: ["misinformation", "spam", "harassment", "hate_speech", "other"],
-        blur_badge: 7,   // Auto-blur + badge after 7 reports
-        remove: 10,      // Auto-remove after 10 reports (7 + 3 more)
+        blur_badge: 15,   // Auto-blur + badge after 15 reports
+        remove: 50,      // Auto-remove after 50 reports
     },
 };
 
-const autoModeratPost = async (post, reportCount, category) => {
-    const isAlreadyAIFlagged = !!post.imageFlag;
+const autoModeratPost = async (post, reportCount, appealCount) => {
+    const isAlreadyAIFlagged = post.imageFlag && post.imageFlag !== "community_report";
+    const effectiveReports = Math.max(0, reportCount - appealCount);
 
-    // --- Rule 1: AI-flagged post gets 3 community reports → REMOVE ---
-    if (isAlreadyAIFlagged && reportCount >= THRESHOLDS.flagged_ai.remove) {
+    // --- Rule 1: AI-flagged post gets 10 effective reports → REMOVE ---
+    if (isAlreadyAIFlagged && effectiveReports >= THRESHOLDS.flagged_ai.remove) {
         return "removed";
     }
 
-    // --- Rule 2: Severe categories (nsfw/violence) → REMOVE at 5 ---
-    if (THRESHOLDS.severe.categories.includes(category)) {
-        if (reportCount >= THRESHOLDS.severe.remove) {
-            return "removed";
-        }
+    // --- Rule 2 & 3: Clean posts → blur+badge at 15, remove at 50 ---
+    if (effectiveReports >= THRESHOLDS.severe.remove || effectiveReports >= THRESHOLDS.moderate.remove) {
+        return "removed";
+    }
+    
+    // If it was already blurred (flagged), keep it blurred until appeal threshold is met in appealPost
+    if (post.moderationStatus === "flagged" && effectiveReports > 0) {
+        return "community_flagged";
     }
 
-    // --- Rule 3: Moderate categories → blur+badge at 7, remove at 10 ---
-    if (THRESHOLDS.moderate.categories.includes(category)) {
-        if (reportCount >= THRESHOLDS.moderate.remove) {
-            return "removed";
-        }
-        if (reportCount >= THRESHOLDS.moderate.blur_badge) {
-            return "community_flagged"; // blur + badge
-        }
+    if (effectiveReports >= THRESHOLDS.severe.blur_badge || effectiveReports >= THRESHOLDS.moderate.blur_badge) {
+        return "community_flagged"; // blur + badge
     }
 
-    return null; // no action needed yet
+    return "safe"; // if effective reports drop below thresholds, it returns to safe/unchanged
 };
 
 // @desc    Report a post
@@ -98,9 +97,10 @@ export const reportPost = async (req, res) => {
 
         // Count all unique reports for this post
         const reportCount = await Report.countDocuments({ post: postId });
+        const appealCount = post.appeals ? post.appeals.length : 0;
 
         // Run auto-moderation threshold check
-        const action = await autoModeratPost(post, reportCount, category);
+        const action = await autoModeratPost(post, reportCount, appealCount);
 
         if (action === "removed") {
             // Delete image from Cloudinary if exists
@@ -161,6 +161,82 @@ export const reportPost = async (req, res) => {
         });
     } catch (error) {
         console.error("Error reporting post:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+// @desc    Appeal a post (Vouch as safe)
+// @route   POST /api/posts/:id/appeal
+// @access  Private
+export const appealPost = async (req, res) => {
+    try {
+        const postId = req.params.id;
+        const userId = req.user._id;
+
+        const post = await Post.findById(postId);
+        if (!post) return res.status(404).json({ message: "Post not found" });
+
+        if (post.moderationStatus === "removed") {
+            return res.status(400).json({ message: "Cannot appeal a removed post" });
+        }
+
+        // Initialize appeals array if it doesn't exist
+        if (!post.appeals) {
+            post.appeals = [];
+        }
+
+        // Check if user already appealed
+        if (post.appeals && post.appeals.includes(userId)) {
+            return res.status(400).json({ message: "You have already appealed this post" });
+        }
+
+        post.appeals.push(userId);
+        await post.save();
+
+        // Notify the post owner about the positive appeal from a community member
+        if (post.author.toString() !== userId.toString()) {
+            await Notification.create({
+                recipient: post.author,
+                type: "system",
+                message: `Someone vouched for your flagged post as safe! Total appeals: ${post.appeals.length}.`,
+                post: post._id,
+            });
+        }
+
+        const reportCount = await Report.countDocuments({ post: postId });
+        const appealCount = post.appeals.length;
+
+        // Ensure we handle the "1 appeal per report" rule and the "50 appeals for AI" rule
+        const isAlreadyAIFlagged = post.imageFlag && post.imageFlag !== "community_report";
+        let canUnblur = false;
+
+        if (isAlreadyAIFlagged) {
+            // If AI flagged it, requires at least 50 appeals to remove the blur
+            if (appealCount >= 50) {
+                canUnblur = true;
+            }
+        } else {
+            // If reported by community, requires appeals to be greater or equal to reports
+            if (appealCount >= reportCount) {
+                canUnblur = true;
+            }
+        }
+
+        // Re-run moderation logic. If appeals restore it below threshold, check if we can unblur.
+        const action = await autoModeratPost(post, reportCount, appealCount);
+
+        if (action === "safe" && post.moderationStatus === "flagged") {
+            if (canUnblur) {
+                post.moderationStatus = "safe";
+                post.imageFlag = "";
+                await post.save();
+                return res.json({ message: "Appeal successful. Post restored to safe status." });
+            }
+        }
+
+        res.json({ message: "Appeal submitted successfully.", appealCount });
+    } catch (error) {
+        console.error("Error appealing post:", error);
         res.status(500).json({ message: "Server error" });
     }
 };
