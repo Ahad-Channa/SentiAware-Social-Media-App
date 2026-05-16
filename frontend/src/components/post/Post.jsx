@@ -515,7 +515,7 @@ const Post = ({ post, onPostUpdated, onPostDeleted }) => {
                                             onClick={() => { setShowReportModal(true); setShowMenu(false); }}
                                             className="block w-full text-left px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
                                         >
-                                            🚩 Report Post
+                                            Report Post
                                         </button>
                                         <button
                                             onClick={async () => {
@@ -533,7 +533,7 @@ const Post = ({ post, onPostUpdated, onPostDeleted }) => {
                                             }}
                                             className="block w-full text-left px-4 py-2.5 text-sm text-green-400 hover:bg-green-500/10 transition-colors"
                                         >
-                                            🛡️ Appeal / Vouch as Safe
+                                            Appeal as safe
                                         </button>
                                     </>
                                 )}
