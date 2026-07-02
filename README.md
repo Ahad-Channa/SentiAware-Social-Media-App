@@ -1,5 +1,11 @@
 # SentiAware: Multimodal Social Media Moderation Platform
 
+## 🚀 Live Demo
+
+Try the live version of the project here:
+
+👉 [SentiAware Live Application](https://senti-aware-social-media-app.vercel.app/)
+
 ## Overview
 
 SentiAware is a full-stack, AI-powered social media platform designed to detect, analyze, and moderate user-generated content in real time. The system combines modern web technologies with advanced machine learning models to ensure a safe and positive online environment.
